@@ -1,0 +1,39 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# C extensions
+*.so
+
+# Database
+*.db
+*.sqlite3
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Virtual environments
+.venv/
+venv/
+ENV/
+env/
+
+# IDE files
+.vscode/
+.idea/
+.git/
+.gitignore
+
+# Testing
+.pytest_cache/
+tests/
+
+# Docker/Compose files
+Dockerfile
+docker-compose.yml
+
+# Backend environment files
+backend/.env
+backend/.env.local

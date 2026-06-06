@@ -1,0 +1,9 @@
+*.env
+*pycache*
+*cache*
+*.toml
+env/
+node_modules/
+*.db
+*.github/
+*.pytest*

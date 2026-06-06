@@ -1,0 +1,8 @@
+import { ChatHistoryEntry } from "../endpoints/chat";
+
+export const MOCK_CHAT_HISTORY: ChatHistoryEntry[] = [
+  { role: 'user', message: 'How does what the professor said about consolidation relate to the YouTube video on encoding?', created_at: new Date(Date.now() - 3600000).toISOString() },
+  { role: 'assistant', message: 'Great connection. In the **Tutorial Week 6** recording, your professor describes consolidation as the hippocampus "replaying" experiences during sleep to strengthen neural pathways. The **YouTube video** approaches this from the encoding side: it shows that deeper processing at the moment of learning gives the hippocampus stronger raw material to work with during consolidation.\n\nSo they complement each other: encoding quality (YouTube) determines what gets consolidated, and the consolidation process (lecture) determines what sticks long term.', created_at: new Date(Date.now() - 3500000).toISOString() },
+  { role: 'user', message: 'What are the best strategies for studying based on all my sources?', created_at: new Date(Date.now() - 3400000).toISOString() },
+  { role: 'assistant', message: 'Across all four of your sources, three strategies come up repeatedly:\n\n**1. Spaced practice** over cramming. Your class notes and the lecture slides both emphasize distributing study over multiple sessions.\n\n**2. Elaborative rehearsal.** Connect new concepts to things you already know. The YouTube video gives a great visual of this: building "hooks" between new and existing knowledge.\n\n**3. Active retrieval.** Testing yourself (like using these flashcards) is more effective than rereading. Your professor mentioned this explicitly in the tutorial.', created_at: new Date(Date.now() - 3300000).toISOString() },
+];
