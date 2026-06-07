@@ -9,12 +9,33 @@ export function QuizView({ session }: { session?: SessionDetail | null }) {
   const [quizData, setQuizData] = useState<Quiz | null>(null);
 
   useEffect(() => {
-    if (session?.id) {
-      getQuiz(session.id).then(setQuizData).catch(console.error);
-    }
-  }, [session?.id]);
+    if (!session?.id) return;
 
-  if (!quizData) return <div className="main-pad">Loading quiz...</div>;
+    if (!session.artifacts?.quiz) {
+      setQuizData(null);
+      return;
+    }
+
+    getQuiz(session.id)
+      .then(setQuizData)
+      .catch(console.error);
+  }, [session]);
+
+  if (!session?.artifacts?.quiz) {
+    return (
+      <div className="main-pad">
+        Quiz has not been generated yet.
+      </div>
+    );
+  }
+
+  if (!quizData) {
+    return (
+      <div className="main-pad">
+        Loading quiz...
+      </div>
+    );
+  }
 
   const q = quizData.questions[qi];
 
@@ -23,7 +44,7 @@ export function QuizView({ session }: { session?: SessionDetail | null }) {
     setSelected(idx);
     setAnswered(true);
   };
-  
+
   const handleNext = () => {
     setQi((qi + 1) % quizData.questions.length);
     setSelected(null);
