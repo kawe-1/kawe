@@ -1,27 +1,28 @@
-from __future__ import annotations
+import os
+from typing import Dict, Type
 
-from pathlib import Path
-from typing import Type
-
-from .base_ingester import BaseIngester
-from .docx_ingester import DocxIngester
-from .html_ingester import HtmlIngester
-from .pdf_ingester import PdfIngester
-from .pptx_ingester import PptxIngester
-from .web_ingester import WebIngester
-from .youtube_ingester import YouTubeIngester
-from .image_ingester import ImageIngester
+from services.audio_ingester import AudioIngester
+from services.base_ingester import BaseIngester
+from services.docx_ingester import DocxIngester
+from services.html_ingester import HtmlIngester
+from services.image_ingester import ImageIngester
+from services.pdf_ingester import PdfIngester
+from services.pptx_ingester import PptxIngester
 
 
 class IngesterRegistry:
-    """A small registry to route sources to the correct ingester."""
-
-    EXTENSION_MAP: dict[str, Type[BaseIngester]] = {
+    # 1. Map file extensions to their dedicated Concrete Ingester Classes
+    EXTENSION_MAP: Dict[str, Type[BaseIngester]] = {
+        # Docling-based Document Ingesters
         ".pdf": PdfIngester,
         ".docx": DocxIngester,
         ".pptx": PptxIngester,
         ".html": HtmlIngester,
-        ".htm": HtmlIngester,
+        # Audio Ingesters
+        ".mp3": AudioIngester,
+        ".wav": AudioIngester,
+        ".m4a": AudioIngester,
+        # Image Ingesters
         ".png": ImageIngester,
         ".jpg": ImageIngester,
         ".jpeg": ImageIngester,
@@ -29,21 +30,16 @@ class IngesterRegistry:
     }
 
     @classmethod
-    def get_ingester_for_source(cls, source: str) -> BaseIngester:
-        if source.startswith(("http://", "https://")):
-            return WebIngester()
-
-        if "youtu.be/" in source or "youtube.com/watch" in source:
-            return YouTubeIngester()
-
-        suffix = Path(source).suffix.lower()
-        if suffix in cls.EXTENSION_MAP:
-            return cls.EXTENSION_MAP[suffix]()
-
-        raise ValueError(f"No registered ingester found for source: {source}")
+    def get_extension(cls, filename: str) -> str:
+        """Extracts and normalizes the extension from a string filename."""
+        if not filename or "." not in filename:
+            return ""
+        return os.path.splitext(filename.lower())[1]
 
     @classmethod
-    def get_supported_formats(cls) -> set[str]:
-        return set(cls.EXTENSION_MAP).union(
-            {"http", "https", "url", "youtube", "youtu.be", "youtube.com", "png", "jpg", "jpeg", "webp"}
-        )
+    def get_ingester_class(cls, filename: str) -> Type[BaseIngester]:
+        """Looks up and returns the uninstantiated class mapping for a filename."""
+        ext = cls.get_extension(filename)
+        if ext not in cls.EXTENSION_MAP:
+            raise ValueError(f"No ingester registered for extension: '{ext}'")
+        return cls.EXTENSION_MAP[ext]

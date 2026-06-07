@@ -4,10 +4,17 @@ import shutil
 import uuid
 from typing import Optional
 
-from fastapi import APIRouter, BackgroundTasks, File, HTTPException, Request, UploadFile
+from fastapi import (
+    APIRouter,
+    BackgroundTasks,
+    File,
+    HTTPException,
+    Request,
+    UploadFile,
+    status,
+)
 from pydantic import BaseModel
 
-from ai.settings import get_embeddings
 from db import (
     add_chat_message,
     create_job,
@@ -23,72 +30,16 @@ from db import (
     list_sessions,
     list_sources,
     save_artifact,
-    update_job,
-    update_source_status,
 )
-from services.audio_ingester import AudioIngester
-from services.image_ingester import ImageIngester
+from helper import background_ingest_source
 from services.registry import IngesterRegistry
-from services.youtube_ingester import YouTubeIngester
 
 _log = logging.getLogger(__name__)
 
 router = APIRouter()
 
-
-# ----------------------------------------------------
-# Background Ingestion Worker
-# ----------------------------------------------------
-def background_ingest_source(
-    job_id: str,
-    source_id: str,
-    session_id: str,
-    source_type: str,
-    path_or_url: str,
-    name: str,
-    **kwargs,
-):
-    update_job(job_id, "processing")
-    update_source_status(source_id, "processing")
-    try:
-        from services.vector_store_factory import get_vector_store
-
-        embeddings = get_embeddings()
-        vector_store = get_vector_store(
-            embedding_function=embeddings,
-            persist_directory=f"data/vector_stores/{session_id}",
-        )
-
-        # Instantiate proper ingester
-        if source_type == "youtube":
-            ingester = YouTubeIngester()
-        elif source_type == "audio":
-            ingester = AudioIngester()
-        elif source_type == "image":
-            ingester = ImageIngester()
-        elif source_type == "document":
-            ingester = IngesterRegistry.get_ingester_for_source(path_or_url)
-        else:
-            raise ValueError(f"Unknown source type: {source_type}")
-
-        ingester.ingest(
-            path_or_url,
-            embeddings=embeddings,
-            vector_store=vector_store,
-            extra_metadata={
-                "session_id": session_id,
-                "source_id": source_id,
-                "source_type": source_type,
-            },
-            **kwargs,
-        )
-
-        update_source_status(source_id, "completed")
-        update_job(job_id, "completed", result={"source_id": source_id})
-    except Exception as e:
-        _log.exception(f"Ingestion failed for source {source_id}")
-        update_source_status(source_id, "failed")
-        update_job(job_id, "failed", error=str(e))
+# File upload limits
+MAX_FILE_SIZE = 20_971_520  # 20 MB in bytes (20 * 1024 * 1024)
 
 
 # ----------------------------------------------------
@@ -156,7 +107,7 @@ def api_delete_session(session_id: str):
 # Source Ingestion Endpoints
 # ----------------------------------------------------
 @router.post("/api/sessions/{session_id}/sources/document")
-def upload_document(
+async def upload_document(
     session_id: str, background_tasks: BackgroundTasks, file: UploadFile = File(...)
 ):
     session = get_session(session_id)
@@ -164,24 +115,33 @@ def upload_document(
         raise HTTPException(status_code=404, detail="Session not found")
 
     ext = os.path.splitext(file.filename)[1].lower()
-    if ext not in {".pdf", ".docx", ".pptx", ".html", ".htm"}:
+    if ext not in IngesterRegistry.EXTENSION_MAP:
         raise HTTPException(
             status_code=400,
             detail="Unsupported file format. Supported: PDF, DOCX, PPTX, HTML.",
         )
 
-    upload_dir = f"data/uploads/{session_id}"
-    os.makedirs(upload_dir, exist_ok=True)
-    file_path = os.path.join(upload_dir, file.filename)
+    # Read file as bytes
+    file_bytes = await file.read()
 
-    with open(file_path, "wb") as f:
-        shutil.copyfileobj(file.file, f)
+    # Validate file size
+    if len(file_bytes) > MAX_FILE_SIZE:
+        raise HTTPException(
+            status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+            detail=f"File too large. Maximum allowed size is {MAX_FILE_SIZE // (1024 * 1024)} MB.",
+        )
 
     source_id = f"src_{uuid.uuid4().hex[:12]}"
     job_id = f"job_{uuid.uuid4().hex[:12]}"
 
+    # Store metadata without file path (bytes handled in memory)
     create_source(
-        source_id, session_id, file.filename, "document", file_path, "pending"
+        source_id,
+        session_id,
+        file.filename,
+        "document",
+        f"bytes://{source_id}",
+        "pending",
     )
     create_job(job_id, "processing")
 
@@ -191,15 +151,16 @@ def upload_document(
         source_id=source_id,
         session_id=session_id,
         source_type="document",
-        path_or_url=file_path,
+        path_or_url=f"bytes://{source_id}",
         name=file.filename,
+        file_bytes=file_bytes,
     )
 
     return {"job_id": job_id, "source_id": source_id}
 
 
 @router.post("/api/sessions/{session_id}/sources/audio")
-def upload_audio(
+async def upload_audio(
     session_id: str, background_tasks: BackgroundTasks, file: UploadFile = File(...)
 ):
     session = get_session(session_id)
@@ -207,23 +168,29 @@ def upload_audio(
         raise HTTPException(status_code=404, detail="Session not found")
 
     ext = os.path.splitext(file.filename)[1].lower()
-    if ext not in {".mp3", ".wav", ".m4a"}:
+    if ext not in IngesterRegistry.EXTENSION_MAP:
         raise HTTPException(
             status_code=400,
             detail="Unsupported audio format. Supported: MP3, WAV, M4A.",
         )
 
-    upload_dir = f"data/uploads/{session_id}"
-    os.makedirs(upload_dir, exist_ok=True)
-    file_path = os.path.join(upload_dir, file.filename)
+    # Read file as bytes
+    file_bytes = await file.read()
 
-    with open(file_path, "wb") as f:
-        shutil.copyfileobj(file.file, f)
+    # Validate file size
+    if len(file_bytes) > MAX_FILE_SIZE:
+        raise HTTPException(
+            status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+            detail=f"File too large. Maximum allowed size is {MAX_FILE_SIZE // (1024 * 1024)} MB.",
+        )
 
     source_id = f"src_{uuid.uuid4().hex[:12]}"
     job_id = f"job_{uuid.uuid4().hex[:12]}"
 
-    create_source(source_id, session_id, file.filename, "audio", file_path, "pending")
+    # Store metadata without file path (bytes handled in memory)
+    create_source(
+        source_id, session_id, file.filename, "audio", f"bytes://{source_id}", "pending"
+    )
     create_job(job_id, "processing")
 
     background_tasks.add_task(
@@ -232,15 +199,16 @@ def upload_audio(
         source_id=source_id,
         session_id=session_id,
         source_type="audio",
-        path_or_url=file_path,
+        path_or_url=f"bytes://{source_id}",
         name=file.filename,
+        file_bytes=file_bytes,
     )
 
     return {"job_id": job_id, "source_id": source_id}
 
 
 @router.post("/api/sessions/{session_id}/sources/image")
-def upload_image(
+async def upload_image(
     session_id: str, background_tasks: BackgroundTasks, file: UploadFile = File(...)
 ):
     session = get_session(session_id)
@@ -248,23 +216,29 @@ def upload_image(
         raise HTTPException(status_code=404, detail="Session not found")
 
     ext = os.path.splitext(file.filename)[1].lower()
-    if ext not in {".png", ".jpg", ".jpeg", ".webp"}:
+    if ext not in IngesterRegistry.EXTENSION_MAP:
         raise HTTPException(
             status_code=400,
             detail="Unsupported image format. Supported: PNG, JPG, JPEG, WEBP.",
         )
 
-    upload_dir = f"data/uploads/{session_id}"
-    os.makedirs(upload_dir, exist_ok=True)
-    file_path = os.path.join(upload_dir, file.filename)
+    # Read file as bytes
+    file_bytes = await file.read()
 
-    with open(file_path, "wb") as f:
-        shutil.copyfileobj(file.file, f)
+    # Validate file size
+    if len(file_bytes) > MAX_FILE_SIZE:
+        raise HTTPException(
+            status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+            detail=f"File too large. Maximum allowed size is {MAX_FILE_SIZE // (1024 * 1024)} MB.",
+        )
 
     source_id = f"src_{uuid.uuid4().hex[:12]}"
     job_id = f"job_{uuid.uuid4().hex[:12]}"
 
-    create_source(source_id, session_id, file.filename, "image", file_path, "pending")
+    # Store metadata without file path (bytes handled in memory)
+    create_source(
+        source_id, session_id, file.filename, "image", f"bytes://{source_id}", "pending"
+    )
     create_job(job_id, "processing")
 
     background_tasks.add_task(
@@ -273,8 +247,9 @@ def upload_image(
         source_id=source_id,
         session_id=session_id,
         source_type="image",
-        path_or_url=file_path,
+        path_or_url=f"bytes://{source_id}",
         name=file.filename,
+        file_bytes=file_bytes,
     )
 
     return {"job_id": job_id, "source_id": source_id}
@@ -326,13 +301,7 @@ def api_delete_source(source_id: str):
         raise HTTPException(status_code=404, detail="Source not found")
 
     delete_source(source_id)
-    if os.path.exists(source["path_or_url"]):
-        try:
-            os.remove(source["path_or_url"])
-        except OSError:
-            pass
 
-    # Remove from Chroma
     try:
         from ai.generation import get_session_vector_store
 
