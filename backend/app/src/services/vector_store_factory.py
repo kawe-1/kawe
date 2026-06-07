@@ -18,7 +18,7 @@ def get_vector_store(
 
     if provider == "chroma":
         try:
-            from langchain.vectorstores import Chroma
+            from langchain_chroma import Chroma
         except ImportError as exc:
             raise ImportError(
                 "Chroma vector store support is required but not installed. "
@@ -29,7 +29,7 @@ def get_vector_store(
 
     if provider == "qdrant":
         try:
-            from langchain.vectorstores import Qdrant
+            from langchain_qdrant import Qdrant
         except ImportError as exc:
             raise ImportError(
                 "Qdrant vector store support is required but not installed. "
@@ -40,7 +40,7 @@ def get_vector_store(
 
     if provider == "weaviate":
         try:
-            from langchain.vectorstores import Weaviate
+            from langchain_weaviate import Weaviate
         except ImportError as exc:
             raise ImportError(
                 "Weaviate vector store support is required but not installed. "
@@ -51,7 +51,7 @@ def get_vector_store(
 
     if provider == "milvus":
         try:
-            from langchain.vectorstores import Milvus
+            from langchain_milvus import Milvus
         except ImportError as exc:
             raise ImportError(
                 "Milvus vector store support is required but not installed. "
