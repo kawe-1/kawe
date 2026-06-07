@@ -1,0 +1,34 @@
+# Server & Framework
+fastapi
+uvicorn
+python-dotenv
+pydantic
+pydantic-settings
+sqlalchemy
+
+# AI & Orchestration
+langchain
+langchain-community
+langchain-text-splitters
+langchain-google-genai
+langchain-huggingface
+sentence-transformers
+
+# Vector Stores
+langchain-chroma
+langchain-weaviate
+langchain-qdrant
+langchain-milvus
+
+# Content Extraction & Media Processing
+docling
+beautifulsoup4
+yt-dlp
+soundfile
+pillow
+tiktoken
+
+# Development & Testing
+ruff
+pytest
+python-multipart
