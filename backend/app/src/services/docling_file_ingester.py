@@ -1,14 +1,15 @@
 from __future__ import annotations
 
+import io
 from abc import ABC
-from pathlib import Path
 from typing import TYPE_CHECKING, Any, Sequence
 
-from .base_ingester import BaseIngester
 from langchain_core.documents import Document
 
+from .base_ingester import BaseIngester
+
 if TYPE_CHECKING:
-    from docling.datamodel.base_models import InputFormat
+    pass
 
 
 _CONVERTER_CACHE = None
@@ -25,12 +26,12 @@ def get_shared_converter(images_scale=2.0):
             DocumentConverter,
             PdfFormatOption,
         ) = DoclingFileIngester._import_docling_components()
-        
+
         pipeline_options = PdfPipelineOptions()
         pipeline_options.images_scale = images_scale
         pipeline_options.generate_page_images = True
         pipeline_options.generate_picture_images = True
-        
+
         format_options = {
             InputFormat.PDF: PdfFormatOption(pipeline_options=pipeline_options)
         }
@@ -47,28 +48,41 @@ def get_shared_chunker():
 
 
 class DoclingFileIngester(BaseIngester, ABC):
-    """Base ingester for file formats that should use Docling."""
+    """Base ingester for binary file data that processes entirely in memory using Docling."""
 
     source_type: str
     supported_extensions: set[str]
 
-    def load(self, source: str, **kwargs: Any) -> Sequence[Document]:
-        path = Path(source)
-        suffix = path.suffix.lower()
+    def load(
+        self, file_bytes: bytes, filename: str, **kwargs: Any
+    ) -> Sequence[Document]:
+        """
+        Accepts raw file bytes and the original filename (for extension routing).
+        Completely bypasses any local file path creation.
+        """
+        # Extract and validate extension
+        suffix = f".{filename.split('.')[-1].lower()}" if "." in filename else ""
         if suffix not in self.supported_extensions:
             raise ValueError(
                 f"{self.__class__.__name__} only accepts files with extensions: "
                 f"{sorted(self.supported_extensions)}."
             )
 
-        docling_document = self._convert_to_docling_document(path, **kwargs)
+        # 1. Convert entirely in memory
+        docling_document = self._convert_bytes_to_docling(
+            file_bytes, filename, **kwargs
+        )
+
+        # 2. Serialize to markdown string entirely in memory
         markdown = self._serialize_docling_document(docling_document, **kwargs)
+
         return [
             Document(
                 page_content=markdown,
                 metadata={
                     "source_type": self.source_type,
                     "extension": suffix,
+                    "filename": filename,
                     "_docling_document": docling_document,
                 },
             )
@@ -94,10 +108,22 @@ class DoclingFileIngester(BaseIngester, ABC):
 
         return super().chunk_documents(documents, source=source, **kwargs)
 
-    def _convert_to_docling_document(self, path: Path, **kwargs: Any) -> Any:
+    def _convert_bytes_to_docling(
+        self, file_bytes: bytes, filename: str, **kwargs: Any
+    ) -> Any:
+        """Wraps binary data into an in-memory stream for Docling."""
+        from docling.datamodel.base_models import DocumentStream
+
         images_scale = kwargs.pop("images_scale", 2.0)
         converter = get_shared_converter(images_scale=images_scale)
-        conv_res = converter.convert(path)
+
+        # Wrap bytes into an in-memory byte stream
+        bytes_stream = io.BytesIO(file_bytes)
+
+        # Docling needs the filename string to determine file formatting pipeline
+        doc_stream = DocumentStream(name=filename, stream=bytes_stream)
+
+        conv_res = converter.convert(doc_stream)
         return conv_res.document
 
     def _serialize_docling_document(
@@ -105,39 +131,12 @@ class DoclingFileIngester(BaseIngester, ABC):
         docling_document: Any,
         **kwargs: Any,
     ) -> str:
+        """Exports the document structure to a Markdown string directly in memory."""
         ImageRefMode, *_ = self._import_docling_components()
         image_mode = kwargs.pop("image_mode", ImageRefMode.EMBEDDED)
 
-        import os
-        import tempfile
-
-        with tempfile.NamedTemporaryFile(
-            suffix=".md",
-            delete=False,
-            mode="w+",
-            encoding="utf-8",
-        ) as temp_file:
-            temp_path = temp_file.name
-
-        try:
-            try:
-                result = docling_document.save_as_markdown(
-                    temp_path,
-                    image_mode=image_mode,
-                )
-            except TypeError:
-                result = docling_document.save_as_markdown(image_mode=image_mode)
-
-            if isinstance(result, str):
-                return result
-
-            with open(temp_path, "r", encoding="utf-8") as reader:
-                return reader.read()
-        finally:
-            try:
-                os.remove(temp_path)
-            except OSError:
-                pass
+        # No temporary files needed! export_to_markdown handles strings natively.
+        return docling_document.export_to_markdown(image_mode=image_mode)
 
     def _chunk_docling_document(
         self,
@@ -146,6 +145,7 @@ class DoclingFileIngester(BaseIngester, ABC):
         base_metadata: dict[str, Any] | None = None,
         **kwargs: Any,
     ) -> list[Document]:
+        # ... Keep your existing chunking parsing implementation identical ...
         chunker_options = kwargs.pop("docling_chunker_options", {})
         if not chunker_options:
             chunker = get_shared_chunker()
