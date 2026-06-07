@@ -19,12 +19,12 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 RUN mkdir -p /app/data
 
 # Copy the requirements file and install dependencies
-COPY backend/requirements.txt /app/
-RUN pip install --no-cache-dir -r requirements.txt
+# Note: build context is ./backend so reference paths relative to that context
+COPY env/requirements.txt /app/requirements.txt
+RUN pip install --no-cache-dir -r /app/requirements.txt
 
-# Copy the application source code and template environment file
-COPY backend/app /app/app
-COPY backend/.env.template /app/.env.template
+# Copy the application source code (relative to backend/)
+COPY app /app/app
 
 # Expose the API port
 EXPOSE 8000
