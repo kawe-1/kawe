@@ -67,10 +67,10 @@ export function pollJob(
   options: PollJobOptions = {},
 ): Promise<Job> {
   const {
-    intervalMs = 1_000,
-    backoffMs = 3_000,
+    intervalMs = 3_000,
+    backoffMs = 5_000,
     backoffAfter = 5,
-    maxAttempts = 60,
+    maxAttempts = 180,
     onPoll,
   } = options;
 

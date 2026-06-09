@@ -81,6 +81,21 @@ export async function submitYouTubeUrl(
 }
 
 /**
+ * POST /api/sessions/:sessionId/sources/web
+ * Submit a web URL for content ingestion.
+ */
+export async function submitWebUrl(
+  sessionId: string,
+  url: string,
+): Promise<IngestionJob> {
+  const { data } = await api.post<IngestionJob>(
+    `/api/sessions/${sessionId}/sources/web`,
+    { url },
+  );
+  return data;
+}
+
+/**
  * GET /api/sessions/:sessionId/sources
  * List all sources attached to a session.
  */

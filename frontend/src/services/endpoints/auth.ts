@@ -1,0 +1,44 @@
+import api from '../axios';
+
+export interface AuthUser {
+    id: string;
+    email: string;
+    name: string;
+}
+
+export interface AuthResponse {
+    access_token: string;
+    token_type: string;
+    user: AuthUser;
+}
+
+/**
+ * Register a new user account with email, password, and optionally name.
+ */
+export async function registerUser(email: string, password: string, name?: string): Promise<AuthResponse> {
+    const { data } = await api.post<AuthResponse>('/api/auth/register', {
+        email,
+        password,
+        name: name || '',
+    });
+    return data;
+}
+
+/**
+ * Log in an existing user with email and password.
+ */
+export async function loginUser(email: string, password: string): Promise<AuthResponse> {
+    const { data } = await api.post<AuthResponse>('/api/auth/login', {
+        email,
+        password,
+    });
+    return data;
+}
+
+/**
+ * Get current user profile details via stored authentication headers.
+ */
+export async function getMe(): Promise<AuthUser> {
+    const { data } = await api.get<AuthUser>('/api/auth/me');
+    return data;
+}

@@ -1,7 +1,7 @@
 import api from "../axios";
 
 // ---------------------------------------------------------------------------
-// Types — shaped from the AI generation layer and frontend prototype data
+// Types
 // ---------------------------------------------------------------------------
 
 export interface NoteSection {
@@ -14,27 +14,23 @@ export interface Notes {
   sections: NoteSection[];
 }
 
-// ----
-
 export type QuizDifficulty = "easy" | "medium" | "hard";
 
 export interface QuizQuestion {
   question: string;
-  options: string[];
-  correct: number; // zero-based index into options
+  choices: string[];
+  correct_answer: string;
   explanation: string;
 }
 
 export interface Quiz {
-  questions: QuizQuestion[];
+  quizzes: QuizQuestion[];
 }
 
-export interface GenerateQuizOptions {
-  num_questions?: number; // default: 5
-  difficulty?: QuizDifficulty; // default: "medium"
+export interface GenerateQuizRequest {
+  num_questions?: number;
+  difficulty?: QuizDifficulty;
 }
-
-// ----
 
 export interface Flashcard {
   front: string;
@@ -42,10 +38,8 @@ export interface Flashcard {
 }
 
 export interface Flashcards {
-  cards: Flashcard[];
+  flashcards: Flashcard[];
 }
-
-// ----
 
 export interface Concept {
   term: string;
@@ -63,12 +57,9 @@ export interface Concepts {
 /**
  * POST /api/sessions/:sessionId/notes
  * Trigger AI generation of fused notes from all ingested sources.
- * Idempotent — regenerates and overwrites if notes already exist.
  */
 export async function generateNotes(sessionId: string): Promise<Notes> {
-  const { data } = await api.post<Notes>(
-    `/api/sessions/${sessionId}/notes`,
-  );
+  const { data } = await api.post<Notes>(`/api/sessions/${sessionId}/notes`);
   return data;
 }
 
@@ -88,16 +79,16 @@ export async function getNotes(sessionId: string): Promise<Notes> {
 /**
  * POST /api/sessions/:sessionId/quiz
  * Generate a multiple-choice quiz from session sources.
- * Pass `num_questions` and `difficulty` to control output.
  */
 export async function generateQuiz(
   sessionId: string,
-  options: GenerateQuizOptions = {},
+  options: GenerateQuizRequest = {},
 ): Promise<Quiz> {
   const payload = {
     num_questions: options.num_questions ?? 5,
     difficulty: options.difficulty ?? "medium",
   };
+
   const { data } = await api.post<Quiz>(
     `/api/sessions/${sessionId}/quiz`,
     payload,
