@@ -15,13 +15,31 @@ def get_connection():
 def init_db():
     conn = get_connection()
     with conn:
+        # Users table
         conn.execute("""
-            CREATE TABLE IF NOT EXISTS sessions (
+            CREATE TABLE IF NOT EXISTS users (
                 id TEXT PRIMARY KEY,
-                title TEXT NOT NULL,
+                email TEXT UNIQUE NOT NULL,
+                name TEXT NOT NULL DEFAULT '',
+                password_hash TEXT,
+                google_id TEXT,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             );
         """)
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS sessions (
+                id TEXT PRIMARY KEY,
+                user_id TEXT,
+                title TEXT NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+            );
+        """)
+        # Add user_id column to existing sessions table if missing
+        try:
+            conn.execute("ALTER TABLE sessions ADD COLUMN user_id TEXT;")
+        except Exception:
+            pass  # Column already exists
         conn.execute("""
             CREATE TABLE IF NOT EXISTS sources (
                 id TEXT PRIMARY KEY,
@@ -202,3 +220,57 @@ def get_job(job_id: str) -> Optional[Dict[str, Any]]:
             res["result"] = json.loads(res["result"])
         return res
     return None
+
+# ── User functions ────────────────────────────────────────────────────────────
+
+def create_user(user_id: str, email: str, name: str, password_hash: Optional[str] = None, google_id: Optional[str] = None) -> Dict[str, Any]:
+    conn = get_connection()
+    with conn:
+        conn.execute(
+            "INSERT INTO users (id, email, name, password_hash, google_id) VALUES (?, ?, ?, ?, ?);",
+            (user_id, email.lower().strip(), name, password_hash, google_id),
+        )
+    conn.close()
+    return {"id": user_id, "email": email, "name": name}
+
+def get_user_by_email(email: str) -> Optional[Dict[str, Any]]:
+    conn = get_connection()
+    row = conn.execute("SELECT * FROM users WHERE email = ?;", (email.lower().strip(),)).fetchone()
+    conn.close()
+    return dict(row) if row else None
+
+def get_user_by_google_id(google_id: str) -> Optional[Dict[str, Any]]:
+    conn = get_connection()
+    row = conn.execute("SELECT * FROM users WHERE google_id = ?;", (google_id,)).fetchone()
+    conn.close()
+    return dict(row) if row else None
+
+def get_user_by_id(user_id: str) -> Optional[Dict[str, Any]]:
+    conn = get_connection()
+    row = conn.execute("SELECT * FROM users WHERE id = ?;", (user_id,)).fetchone()
+    conn.close()
+    return dict(row) if row else None
+
+def update_user_google_id(user_id: str, google_id: str):
+    conn = get_connection()
+    with conn:
+        conn.execute("UPDATE users SET google_id = ? WHERE id = ?;", (google_id, user_id))
+    conn.close()
+
+def create_session(session_id: str, title: str, user_id: Optional[str] = None):
+    conn = get_connection()
+    with conn:
+        conn.execute(
+            "INSERT INTO sessions (id, title, user_id) VALUES (?, ?, ?);",
+            (session_id, title, user_id),
+        )
+    conn.close()
+
+def list_sessions_for_user(user_id: str) -> List[Dict[str, Any]]:
+    conn = get_connection()
+    rows = conn.execute(
+        "SELECT * FROM sessions WHERE user_id = ? ORDER BY created_at DESC;",
+        (user_id,),
+    ).fetchall()
+    conn.close()
+    return [dict(r) for r in rows]

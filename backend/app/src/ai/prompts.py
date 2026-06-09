@@ -47,6 +47,21 @@ FLASHCARD_PROMPT_TEMPLATE = (
     "- Use only information found in the retrieved context.\n"
 )
 
+NOTES_PROMPT_TEMPLATE = (
+    "Using the retrieved context below, compile comprehensive study notes broken down into structural sections. "
+    "Return valid JSON only matching the schema layout requested.\n\n"
+    "Retrieved Context:\n{context}\n\n"
+    "Instructions:\n"
+    "- Group information into logical thematic headings (e.g., 'Core Architecture', 'Key Requirements').\n"
+    "- The 'body' must contain the exhaustive and detailed notes for that section.\n"
+    "- The 'cite' must state where this information was drawn from (e.g., specific filename, URL, or document title from the context source metadata).\n"
+    "- Remain fully grounded in the retrieved text context without introducing external assumptions.\n"
+)
+
+
+def format_notes_prompt(context: str) -> str:
+    return NOTES_PROMPT_TEMPLATE.format(context=context)
+
 
 def format_rag_prompt(context: str, query: str) -> str:
     return RAG_USER_PROMPT_TEMPLATE.format(context=context, query=query)

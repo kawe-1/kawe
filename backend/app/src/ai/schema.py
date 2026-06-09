@@ -3,6 +3,16 @@ from __future__ import annotations
 from pydantic import BaseModel
 
 
+class NoteSection(BaseModel):
+    heading: str
+    body: str
+    cite: str
+
+
+class Notes(BaseModel):
+    sections: list[NoteSection]
+
+
 class Summary(BaseModel):
     title: str
     overview: str
@@ -30,9 +40,8 @@ class FlashcardDeck(BaseModel):
 
 
 class ConceptSimplification(BaseModel):
-    concept: str
-    simplified_explanation: str
-    analogy: str
+    term: str
+    explanation: str
 
 
 class ConceptDeck(BaseModel):

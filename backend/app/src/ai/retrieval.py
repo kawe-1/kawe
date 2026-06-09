@@ -4,6 +4,7 @@ import re
 from typing import Any, Sequence
 
 from langchain_core.documents import Document
+from langchain_core.vectorstores import VectorStore
 
 
 def retrieve_relevant_chunks(
@@ -57,32 +58,33 @@ def _build_metadata_filter(
 
 
 def _search_vector_store(
-    vector_store: Any,
+    vector_store: VectorStore,
     query_embedding: Sequence[float],
     k: int,
     metadata_filter: dict[str, Any] | None,
 ) -> list[Document]:
-    if hasattr(vector_store, "similarity_search_by_vector"):
+    embedding_list = list(query_embedding)
+
+    # 1. Look for vector search that returns (Document, score) pairs for your reranker
+    if hasattr(vector_store, "similarity_search_with_score_by_vector"):
+        results = vector_store.similarity_search_with_score_by_vector(
+            embedding=embedding_list,
+            k=k,
+            filter=metadata_filter,
+        )
+    # 2. Fallback to basic vector search (drops score, defaults to 1.0 in your reranker)
+    elif hasattr(vector_store, "similarity_search_by_vector"):
         results = vector_store.similarity_search_by_vector(
-            query_embedding,
-            k=k,
-            filter=metadata_filter,
-        )
-    elif hasattr(vector_store, "similarity_search_with_score"):
-        results = vector_store.similarity_search_with_score(
-            query_embedding,
-            k=k,
-            filter=metadata_filter,
-        )
-    elif hasattr(vector_store, "similarity_search"):
-        results = vector_store.similarity_search(
-            query_embedding,
+            embedding_list,
             k=k,
             filter=metadata_filter,
         )
     else:
-        raise NotImplementedError(
-            "The provided vector store does not support similarity search by vector."
+        # Standard generic backup string query search
+        results = vector_store.similarity_search(
+            query="",
+            k=k,
+            filter=metadata_filter,
         )
 
     return _normalize_search_results(results)
