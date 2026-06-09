@@ -2,19 +2,44 @@ from __future__ import annotations
 
 from typing import Any, Sequence
 
-from langchain_community.document_loaders import YoutubeLoader
 from langchain_core.documents import Document
 
 from .base_ingester import BaseIngester
 
 
 class YouTubeIngester(BaseIngester):
-    """Ingest transcripts from YouTube videos."""
+    """Ingest transcripts from YouTube videos.
+
+    Uses youtube-transcript-api v1.x (fetch() instance method).
+    """
 
     def load(self, source: str, **kwargs: Any) -> Sequence[Document]:
         video_id = self._extract_video_id(source)
-        loader = YoutubeLoader(video_id=video_id, **kwargs)
-        return loader.load()
+
+        from youtube_transcript_api import YouTubeTranscriptApi, NoTranscriptFound, TranscriptsDisabled
+
+        ytt = YouTubeTranscriptApi()
+        try:
+            # fetch() returns a FetchedTranscript iterable of snippets with .text
+            transcript = ytt.fetch(video_id)
+            text = " ".join(snippet.text for snippet in transcript)
+        except (NoTranscriptFound, TranscriptsDisabled) as e:
+            raise ValueError(
+                f"No transcript available for this YouTube video. "
+                f"Make sure the video has captions enabled. ({e})"
+            )
+        except Exception as e:
+            raise ValueError(f"Failed to fetch YouTube transcript: {e}")
+
+        if not text.strip():
+            raise ValueError("YouTube transcript is empty.")
+
+        return [
+            Document(
+                page_content=text,
+                metadata={"source": source, "source_type": "youtube", "video_id": video_id},
+            )
+        ]
 
     def supported_formats(self) -> Sequence[str]:
         return ["youtube", "youtu.be", "youtube.com"]
@@ -32,29 +57,3 @@ class YouTubeIngester(BaseIngester):
         raise ValueError(
             "Invalid YouTube URL. Expected a standard YouTube watch or youtu.be URL."
         )
-
-
-if __name__ == "__main__":
-    """Quick manual test for YouTubeIngester.
-
-    Example usage:
-        python -m src.services.youtube_ingester
-    """
-    sample_url = "https://www.youtube.com/watch?v=abc123"
-
-    print("YouTubeIngester example: extracting video id from a sample URL")
-    ing = YouTubeIngester()
-    try:
-        vid = ing._extract_video_id(sample_url)
-        print(f"Source: {sample_url} -> video_id: {vid}")
-    except Exception as exc:  # pragma: no cover - example-only
-        print("Failed video ID extraction:", type(exc).__name__, exc)
-
-    try:
-        docs = ing.ingest(sample_url)
-        print(f"Loaded and chunked {len(docs)} document(s).")
-        if docs:
-            print(docs[0].page_content[:400])
-    except Exception as exc:  # pragma: no cover - example-only
-        print("YouTubeIngester example failed:", type(exc).__name__, exc)
-        print("Ensure network access and required packages are available.")

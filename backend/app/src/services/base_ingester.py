@@ -94,44 +94,15 @@ class BaseIngester(ABC):
         documents: Sequence[Document],
         embeddings: Any | None = None,
         vector_store: Any | None = None,
-        vector_store_provider: str | None = None,
         **kwargs: Any,
     ) -> list[Document]:
-        """Persist chunked documents using a vector store if configured.
-
-        If an embeddings instance is provided, the default behavior is to
-        build a vector store using the current environment provider and
-        write documents to it. If no embeddings are provided, documents are
-        returned unchanged. This keeps ingestion and chunking separate from
-        persistence, so embeddings are a downstream concern rather than part
-        of the ingester type.
-        """
-        if vector_store is None and embeddings is None:
+        """Persist chunked documents using a unified vector store."""
+        if vector_store is None or embeddings is None or not documents:
             return list(documents)
 
-        if vector_store is None:
-            vector_store = self.get_vector_store(
-                embedding_function=embeddings,
-                provider=vector_store_provider,
-                **kwargs,
-            )
-
         vector_store.add_documents(list(documents))
+
         return list(documents)
-
-    def get_vector_store(
-        self,
-        embedding_function: Any,
-        provider: str | None = None,
-        **kwargs: Any,
-    ) -> Any:
-        from .vector_store_factory import get_vector_store
-
-        return get_vector_store(
-            embedding_function=embedding_function,
-            provider=provider,
-            **kwargs,
-        )
 
     def _extract_chunk_kwargs(self, kwargs: dict[str, Any]) -> dict[str, Any]:
         return {

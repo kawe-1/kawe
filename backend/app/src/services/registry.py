@@ -1,13 +1,13 @@
 import os
 from typing import Dict, Type
 
-from services.audio_ingester import AudioIngester
-from services.base_ingester import BaseIngester
-from services.docx_ingester import DocxIngester
-from services.html_ingester import HtmlIngester
-from services.image_ingester import ImageIngester
-from services.pdf_ingester import PdfIngester
-from services.pptx_ingester import PptxIngester
+from .audio_ingester import AudioIngester
+from .base_ingester import BaseIngester
+from .docx_ingester import DocxIngester
+from .html_ingester import HtmlIngester
+from .image_ingester import ImageIngester
+from .pdf_ingester import PdfIngester
+from .pptx_ingester import PptxIngester
 
 
 class IngesterRegistry:

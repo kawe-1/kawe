@@ -1,9 +1,11 @@
 import logging
 from typing import Optional
 
+from ai.generation import get_session_vector_store
 from ai.settings import get_embeddings
 from db import update_job, update_source_status
 from services.youtube_ingester import YouTubeIngester
+from services.web_ingester import WebIngester
 
 _log = logging.getLogger(__name__)
 
@@ -22,13 +24,9 @@ def background_ingest_source(
     update_source_status(source_id, "processing")
     try:
         from services.registry import IngesterRegistry  # <-- Import your new registry
-        from services.vector_store_factory import get_vector_store
 
         embeddings = get_embeddings()
-        vector_store = get_vector_store(
-            embedding_function=embeddings,
-            persist_directory=f"data/vector_stores/{session_id}",
-        )
+        vector_store = get_session_vector_store(session_id)
 
         extra_metadata = {
             "session_id": session_id,
@@ -44,7 +42,7 @@ def background_ingest_source(
             ingester = IngesterClass()
 
             # 2. Extract texts/documents using bytes
-            docs = ingester.load(file_bytes=file_bytes, filename=name)
+            docs = ingester.load(file_bytes, filename=name)
 
             # 3. Handle chunking and vector storage
             chunked_docs = ingester.chunk_documents(docs, source=source_id)
@@ -59,6 +57,8 @@ def background_ingest_source(
         else:
             if source_type == "youtube":
                 ingester = YouTubeIngester()
+            elif source_type == "web":
+                ingester = WebIngester()
             else:
                 raise ValueError(f"Unknown URL-based source type: {source_type}")
 

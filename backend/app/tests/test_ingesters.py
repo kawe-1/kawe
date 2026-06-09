@@ -186,12 +186,3 @@ def test_base_ingester_persist_documents_with_explicit_store():
 
     assert persisted == documents
     assert fake_store.documents == documents
-
-
-def test_get_vector_store_raises_for_unknown_provider(monkeypatch):
-    from services.vector_store_factory import get_vector_store
-
-    monkeypatch.setenv("VECTOR_DB_PROVIDER", "unsupported")
-
-    with pytest.raises(ValueError, match="Unsupported VECTOR_DB_PROVIDER"):
-        get_vector_store(embedding_function=object())
