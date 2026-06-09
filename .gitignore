@@ -8,3 +8,11 @@ node_modules/
 *.github/
 *.pytest*
 *.instructions.md
+*.docx
+*.wav
+*.mp3
+*.log
+*.faiss
+*.sqlite3
+*.bin
+*.pkl
