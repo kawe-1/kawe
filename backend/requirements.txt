@@ -21,7 +21,6 @@ langchain-qdrant
 langchain-milvus
 
 # Content Extraction & Media Processing
-docling
 beautifulsoup4
 yt-dlp
 soundfile
