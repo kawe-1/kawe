@@ -1,135 +1,144 @@
-# Kawe API
+# Kawe
+Kawe is an AI-powered study companion that helps students learn from multiple learning resources in one place.
 
-Backend API for the Kawe platform.
+Students often rely on a combination of PDFs, lecture notes, videos, webpages, recordings, and personal notes when studying. Switching between these resources creates a fragmented learning experience and makes revision difficult. Kawe brings these materials together into a single study session, allowing learners to interact with their knowledge through conversation, summaries, flashcards, quizzes, and voice-based tutoring.
 
-## Overview
+<p align="center">
+  <img width="1420" height="842" alt="hero-final" alt="Kawe Homepage" src="https://github.com/user-attachments/assets/e868d184-3ba6-4ab3-a5eb-88799d737bfb" />
+</p>
 
-Kawe is an AI-powered learning platform that helps students transform scattered learning materials into a single, interactive study experience.
+## Features
 
-Students can upload PDFs, lecture recordings, YouTube videos, and images of handwritten notes into a Topic Session. The platform combines all uploaded content into a unified knowledge base and provides AI-powered study tools built on top of that knowledge.
+### 📚 Multi-Source Learning
 
-The goal is to help students learn from all their materials as a whole rather than as separate, disconnected resources.
+Create study sessions from multiple content sources:
 
----
+* PDF documents
+* YouTube videos
+* Audio recordings
+* Images of notes
+* Web pages
 
-# Core Concepts
+All uploaded content becomes part of a single learning workspace.
 
-## Topic Session
+### 💬 AI Tutor Chat
 
-A Topic Session is a workspace dedicated to a single subject or topic.
+Ask questions about your study materials in natural language.
 
-Examples:
+The tutor grounds its responses in the content uploaded to the session, helping students explore concepts, clarify confusion, and learn more effectively.
 
-* Data Structures - Week 5
-* Organic Chemistry Revision
-* Machine Learning Fundamentals
+### 📝 AI Study Notes
 
-All uploaded materials, generated content, and interactions belong to a Topic Session.
+Generate structured notes from all materials within a study session.
 
----
+Notes provide a consolidated overview of key ideas, concepts, and explanations extracted from the uploaded sources.
 
-# Features
+### 💡 Concept Simplification
 
-## Multi-Source Content Ingestion
+Break down complex topics into simpler explanations.
 
-Allows students to upload learning materials from multiple sources into a single Topic Session.
+Useful for understanding difficult technical concepts and building foundational knowledge.
 
-Supported sources:
+### 🎯 Quiz Generation
 
-* PDF Documents
-* Audio Recordings
-* YouTube Videos
-* Images of Notes
+Generate revision quizzes directly from study materials.
 
-### Objective
+Quizzes help learners assess understanding and identify knowledge gaps.
 
-Create a single learning workspace regardless of where the content originated.
+### 🧠 Flashcards
 
----
+Generate flashcards covering important concepts, definitions, and facts.
 
-## Unified Knowledge Base
+Designed to support active recall and long-term retention.
 
-All uploaded materials are merged into a shared knowledge base.
+### 🎙️ Voice Tutor
 
-The platform treats uploaded content as one learning resource rather than multiple isolated files.
+Interact with the AI tutor using natural speech.
 
-### Objective
+Students can ask questions verbally and receive spoken responses, creating a more natural and engaging learning experience.
 
-Enable cross-source understanding and eliminate fragmented learning experiences.
+## How It Works
 
----
+1. Create a study session.
+2. Upload learning materials from multiple sources.
+3. Kawe processes the content into a unified knowledge base.
+4. Interact with the material through chat, notes, quizzes, flashcards, and voice tutoring.
 
-## AI Study Notes
+## Getting Started
 
-Generates comprehensive notes from all content within a Topic Session.
+### Backend
 
-### Objective
+Create a virtual environment:
 
-Provide students with a consolidated overview of their learning materials.
+```bash
+python -m venv .venv
+```
 
----
+Activate the virtual environment:
 
-## Concept Simplification
+#### Windows
 
-Breaks down difficult concepts into simpler explanations.
+```bash
+.venv\Scripts\activate
+```
 
-### Objective
+#### Linux / macOS
 
-Improve understanding of complex topics and technical concepts.
+```bash
+source .venv/bin/activate
+```
 
----
+Install dependencies:
 
-## Quiz Generation
+```bash
+pip install -r requirements.txt
+```
 
-Creates practice and revision questions based on the Topic Session knowledge base.
+Start the development server:
 
-### Objective
+```bash
+python -m uvicorn app.src.main:app --reload
+```
 
-Help students assess understanding and prepare for examinations.
+The API will be available at:
 
----
+```text
+http://localhost:8000
+```
 
-## Flashcards
+### Frontend
 
-Generates flashcards covering key concepts, definitions, and important facts.
+Install dependencies:
 
-### Objective
+```bash
+npm install
+```
 
-Support active recall and revision.
+Start the development server:
 
----
+```bash
+npm run dev
+```
 
-## AI Tutor Chat
+The frontend will be available at:
 
-Allows students to ask questions about their uploaded learning materials.
+```text
+http://localhost:5173
+```
 
-The tutor has access to the entire Topic Session knowledge base.
+## Project Structure
 
-### Objective
+The project consists of:
 
-Provide contextual guidance and support during learning.
+* Frontend application (React + TypeScript)
+* Backend API (FastAPI)
+* AI services for retrieval, tutoring, and artifact generation
+* Multi-source content ingestion pipeline
 
----
+## Contributing
 
-## Voice Tutor
+Contributions, feedback, and feature requests are welcome.
 
-Allows students to interact with the AI tutor using natural speech.
+## License
 
-Students can ask questions verbally and receive spoken responses.
-
-### Objective
-
-Create a more natural and engaging tutoring experience.
-
----
-
-# Project Objectives
-
-The backend should enable:
-
-* Creation and management of Topic Sessions
-* Ingestion of multiple content types
-* Construction of a unified knowledge base
-* Generation of AI-powered learning resources
-* Conversational tutoring through text and voice
-* Cross-source understanding across all uploaded materials
+This project is licensed under the project's chosen license.
