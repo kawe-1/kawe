@@ -22,6 +22,7 @@ langchain-milvus
 
 # Content Extraction & Media Processing
 beautifulsoup4
+youtube-transcript-api
 yt-dlp
 soundfile
 pillow
