@@ -21,41 +21,41 @@ Create study sessions from multiple content sources:
 
 All uploaded content becomes part of a single learning workspace.
 
-### 💬 AI Tutor Chat
+- ### 💬 AI Tutor Chat
 
-Ask questions about your study materials in natural language.
+  Ask questions about your study materials in natural language.
+  
+  The tutor grounds its responses in the content uploaded to the session, helping students explore concepts, clarify confusion, and learn more effectively.
 
-The tutor grounds its responses in the content uploaded to the session, helping students explore concepts, clarify confusion, and learn more effectively.
+- ### 📝 AI Study Notes
 
-### 📝 AI Study Notes
+  Generate structured notes from all materials within a study session.
+  
+  Notes provide a consolidated overview of key ideas, concepts, and explanations extracted from the uploaded sources.
 
-Generate structured notes from all materials within a study session.
+- ### 💡 Concept Simplification
 
-Notes provide a consolidated overview of key ideas, concepts, and explanations extracted from the uploaded sources.
+  Break down complex topics into simpler explanations.
+  
+  Useful for understanding difficult technical concepts and building foundational knowledge.
 
-### 💡 Concept Simplification
+- ### 🎯 Quiz Generation
 
-Break down complex topics into simpler explanations.
+  Generate revision quizzes directly from study materials.
+  
+  Quizzes help learners assess understanding and identify knowledge gaps.
 
-Useful for understanding difficult technical concepts and building foundational knowledge.
+- ### 🧠 Flashcards
 
-### 🎯 Quiz Generation
+  Generate flashcards covering important concepts, definitions, and facts.
+  
+  Designed to support active recall and long-term retention.
 
-Generate revision quizzes directly from study materials.
+- ### 🎙️ Voice Tutor
 
-Quizzes help learners assess understanding and identify knowledge gaps.
-
-### 🧠 Flashcards
-
-Generate flashcards covering important concepts, definitions, and facts.
-
-Designed to support active recall and long-term retention.
-
-### 🎙️ Voice Tutor
-
-Interact with the AI tutor using natural speech.
-
-Students can ask questions verbally and receive spoken responses, creating a more natural and engaging learning experience.
+  Interact with the AI tutor using natural speech.
+  
+  Students can ask questions verbally and receive spoken responses, creating a more natural and engaging learning experience.
 
 ## How It Works
 
@@ -102,26 +102,27 @@ If you prefer traditional virtual environments or want to write and modify core 
 
 ### Backend Setup
 
-From the project root, enter the backend folder and create a virtual environment:
+In the project folder, run the following commands:
 
 ```bash
 cd backend
 python -m venv .venv
+
 ```
 
 Activate the virtual environment:
 
-#### Windows
+- #### Windows
 
-```bash
-.venv\Scripts\activate
-```
+    ```bash
+    .venv\Scripts\activate
+    ```
 
-#### Linux / macOS
+- #### Linux / macOS
 
-```bash
-source .venv/bin/activate
-```
+    ```bash
+    source .venv/bin/activate
+    ```
 
 Install dependencies:
 
