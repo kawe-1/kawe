@@ -20,17 +20,17 @@ export const MOCK_CONCEPTS: Concepts = {
 };
 
 export const MOCK_QUIZ: Quiz = {
-  questions: [
-    { question: 'What is the approximate capacity of short term memory according to Miller?', options: ['3 items', '5 items', '7 items (plus or minus 2)', '12 items'], correct: 2, explanation: 'George Miller\'s 1956 paper established the "magic number" of 7 plus or minus 2 as the capacity of short term memory.' },
-    { question: 'Which brain structure is most critical for forming new explicit memories?', options: ['Amygdala', 'Hippocampus', 'Cerebellum', 'Prefrontal cortex'], correct: 1, explanation: 'The hippocampus is essential for consolidating new explicit (declarative) memories, as demonstrated by studies of Patient H.M.' },
-    { question: 'Which type of rehearsal leads to stronger long term memories?', options: ['Maintenance rehearsal', 'Elaborative rehearsal', 'Passive review', 'Speed reading'], correct: 1, explanation: 'Elaborative rehearsal involves connecting new information to existing knowledge, which creates deeper encoding and stronger memory traces.' },
-    { question: 'How long does iconic (visual) sensory memory typically last?', options: ['About 250 milliseconds', 'About 3 seconds', 'About 30 seconds', 'About 5 minutes'], correct: 0, explanation: 'Iconic memory, the visual form of sensory memory, persists for roughly 250 milliseconds before fading.' },
-    { question: 'What did Patient H.M. demonstrate about memory systems?', options: ['All memory is stored in the hippocampus', 'Explicit and implicit memory are separate systems', 'Memory cannot be improved', 'Short term memory is unlimited'], correct: 1, explanation: 'H.M. could still form new procedural (implicit) memories despite losing the ability to form new explicit memories, proving these are distinct systems.' },
+  quizzes: [
+    { question: 'What is the approximate capacity of short term memory according to Miller?', choices: ['3 items', '5 items', '7 items (plus or minus 2)', '12 items'], correct_answer: '7 items (plus or minus 2)', explanation: 'George Miller\'s 1956 paper established the "magic number" of 7 plus or minus 2 as the capacity of short term memory.' },
+    { question: 'Which brain structure is most critical for forming new explicit memories?', choices: ['Amygdala', 'Hippocampus', 'Cerebellum', 'Prefrontal cortex'], correct_answer: 'Hippocampus', explanation: 'The hippocampus is essential for consolidating new explicit (declarative) memories, as demonstrated by studies of Patient H.M.' },
+    { question: 'Which type of rehearsal leads to stronger long term memories?', choices: ['Maintenance rehearsal', 'Elaborative rehearsal', 'Passive review', 'Speed reading'], correct_answer: 'Elaborative rehearsal', explanation: 'Elaborative rehearsal involves connecting new information to existing knowledge, which creates deeper encoding and stronger memory traces.' },
+    { question: 'How long does iconic (visual) sensory memory typically last?', choices: ['About 250 milliseconds', 'About 3 seconds', 'About 30 seconds', 'About 5 minutes'], correct_answer: 'About 250 milliseconds', explanation: 'Iconic memory, the visual form of sensory memory, persists for roughly 250 milliseconds before fading.' },
+    { question: 'What did Patient H.M. demonstrate about memory systems?', choices: ['All memory is stored in the hippocampus', 'Explicit and implicit memory are separate systems', 'Memory cannot be improved', 'Short term memory is unlimited'], correct_answer: 'Explicit and implicit memory are separate systems', explanation: 'H.M. could still form new procedural (implicit) memories despite losing the ability to form new explicit memories, proving these are distinct systems.' },
   ]
 };
 
 export const MOCK_FLASHCARDS: Flashcards = {
-  cards: [
+  flashcards: [
     { front: 'What is chunking?', back: 'Grouping individual pieces of information into larger meaningful units to increase the effective capacity of short term memory.' },
     { front: 'Name the three components of Baddeley\'s working memory model.', back: 'Central executive, phonological loop, and visuospatial sketchpad.' },
     { front: 'What is the difference between episodic and semantic memory?', back: 'Episodic memory stores personal experiences with context. Semantic memory stores general facts without personal context.' },
