@@ -12,7 +12,6 @@ langchain-community
 langchain-text-splitters
 langchain-google-genai
 langchain-huggingface
-sentence-transformers
 
 # Vector Stores
 langchain-chroma
