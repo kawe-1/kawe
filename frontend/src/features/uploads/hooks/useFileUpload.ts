@@ -19,7 +19,7 @@ interface UploadStatus {
 }
 
 interface UseFileUploadResult {
-    fileInputRef: React.RefObject<HTMLInputElement>;
+    fileInputRef: React.RefObject<HTMLInputElement | null>;
     isDragging: boolean;
     statuses: UploadStatus;
     uploading: boolean;
