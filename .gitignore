@@ -16,3 +16,4 @@ node_modules/
 *.sqlite3
 *.bin
 *.pkl
+*.tsbuildinfo
