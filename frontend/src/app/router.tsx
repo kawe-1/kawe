@@ -11,7 +11,7 @@ import React from 'react';
 export const router = createBrowserRouter([
   {
     path: '/',
-    element: <Navigate to="/dashboard" replace />,
+    element: <Navigate to="/auth" replace />,
   },
   {
     path: '/landing',
