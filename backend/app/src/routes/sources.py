@@ -3,15 +3,11 @@ import uuid
 
 from fastapi import APIRouter, BackgroundTasks, Depends, File, HTTPException, UploadFile
 from pydantic import BaseModel
+from sqlalchemy.orm import Session
 
 from auth import get_current_user
-from db import (
-    create_job,
-    create_source,
-    delete_source,
-    get_source,
-    list_sources,
-)
+from db.database import get_db
+from db.repositories import JobRepository, SourceRepository
 from helper import background_ingest_source
 from services.registry import IngesterRegistry
 
@@ -34,8 +30,9 @@ async def upload_document(
     background_tasks: BackgroundTasks,
     file: UploadFile = File(...),
     current_user: dict = Depends(get_current_user),
+    db: Session = Depends(get_db),
 ):
-    session = _require_session(session_id, current_user["id"])
+    _require_session(session_id, current_user["id"], db)
     ext = os.path.splitext(file.filename)[1].lower()
     if ext not in IngesterRegistry.EXTENSION_MAP:
         raise HTTPException(
@@ -50,13 +47,19 @@ async def upload_document(
             detail=f"File too large. Maximum allowed size is {MAX_FILE_SIZE // (1024 * 1024)} MB.",
         )
 
+    source_repo = SourceRepository(db=db)
+    job_repo = JobRepository(db=db)
     source_id = f"src_{uuid.uuid4().hex[:12]}"
     job_id = f"job_{uuid.uuid4().hex[:12]}"
-    bytes_uri = f"bytes://{source_id}"
-    create_source(
-        source_id, session_id, file.filename, "document", bytes_uri, "pending"
+    source_repo.create_source(
+        source_id,
+        session_id,
+        file.filename,
+        "document",
+        f"bytes://{source_id}",
+        "pending",
     )
-    create_job(job_id, "processing")
+    job_repo.create_job(job_id, "processing")
 
     background_tasks.add_task(
         background_ingest_source,
@@ -78,8 +81,9 @@ async def upload_audio(
     background_tasks: BackgroundTasks,
     file: UploadFile = File(...),
     current_user: dict = Depends(get_current_user),
+    db: Session = Depends(get_db),
 ):
-    session = _require_session(session_id, current_user["id"])
+    _require_session(session_id, current_user["id"], db)
     ext = os.path.splitext(file.filename)[1].lower()
     if ext not in IngesterRegistry.EXTENSION_MAP:
         raise HTTPException(
@@ -94,11 +98,14 @@ async def upload_audio(
             detail=f"File too large. Maximum allowed size is {MAX_FILE_SIZE // (1024 * 1024)} MB.",
         )
 
+    source_repo = SourceRepository(db=db)
+    job_repo = JobRepository(db=db)
     source_id = f"src_{uuid.uuid4().hex[:12]}"
     job_id = f"job_{uuid.uuid4().hex[:12]}"
-    bytes_uri = f"bytes://{source_id}"
-    create_source(source_id, session_id, file.filename, "audio", bytes_uri, "pending")
-    create_job(job_id, "processing")
+    source_repo.create_source(
+        source_id, session_id, file.filename, "audio", f"bytes://{source_id}", "pending"
+    )
+    job_repo.create_job(job_id, "processing")
 
     background_tasks.add_task(
         background_ingest_source,
@@ -120,8 +127,9 @@ async def upload_image(
     background_tasks: BackgroundTasks,
     file: UploadFile = File(...),
     current_user: dict = Depends(get_current_user),
+    db: Session = Depends(get_db),
 ):
-    session = _require_session(session_id, current_user["id"])
+    _require_session(session_id, current_user["id"], db)
     ext = os.path.splitext(file.filename)[1].lower()
     if ext not in IngesterRegistry.EXTENSION_MAP:
         raise HTTPException(
@@ -136,11 +144,14 @@ async def upload_image(
             detail=f"File too large. Maximum allowed size is {MAX_FILE_SIZE // (1024 * 1024)} MB.",
         )
 
+    source_repo = SourceRepository(db=db)
+    job_repo = JobRepository(db=db)
     source_id = f"src_{uuid.uuid4().hex[:12]}"
     job_id = f"job_{uuid.uuid4().hex[:12]}"
-    bytes_uri = f"bytes://{source_id}"
-    create_source(source_id, session_id, file.filename, "image", bytes_uri, "pending")
-    create_job(job_id, "processing")
+    source_repo.create_source(
+        source_id, session_id, file.filename, "image", f"bytes://{source_id}", "pending"
+    )
+    job_repo.create_job(job_id, "processing")
 
     background_tasks.add_task(
         background_ingest_source,
@@ -162,13 +173,18 @@ def upload_youtube(
     req: YoutubeRequest,
     background_tasks: BackgroundTasks,
     current_user: dict = Depends(get_current_user),
+    db: Session = Depends(get_db),
 ):
-    session = _require_session(session_id, current_user["id"])
+    _require_session(session_id, current_user["id"], db)
 
+    source_repo = SourceRepository(db=db)
+    job_repo = JobRepository(db=db)
     source_id = f"src_{uuid.uuid4().hex[:12]}"
     job_id = f"job_{uuid.uuid4().hex[:12]}"
-    create_source(source_id, session_id, req.url, "youtube", req.url, "pending")
-    create_job(job_id, "processing")
+    source_repo.create_source(
+        source_id, session_id, req.url, "youtube", req.url, "pending"
+    )
+    job_repo.create_job(job_id, "processing")
 
     background_tasks.add_task(
         background_ingest_source,
@@ -189,17 +205,20 @@ def upload_web(
     req: WebUrlRequest,
     background_tasks: BackgroundTasks,
     current_user: dict = Depends(get_current_user),
+    db: Session = Depends(get_db),
 ):
-    session = _require_session(session_id, current_user["id"])
+    _require_session(session_id, current_user["id"], db)
     if not req.url.startswith(("http://", "https://")):
         raise HTTPException(
             status_code=400, detail="URL must start with http:// or https://"
         )
 
+    source_repo = SourceRepository(db=db)
+    job_repo = JobRepository(db=db)
     source_id = f"src_{uuid.uuid4().hex[:12]}"
     job_id = f"job_{uuid.uuid4().hex[:12]}"
-    create_source(source_id, session_id, req.url, "web", req.url, "pending")
-    create_job(job_id, "processing")
+    source_repo.create_source(source_id, session_id, req.url, "web", req.url, "pending")
+    job_repo.create_job(job_id, "processing")
 
     background_tasks.add_task(
         background_ingest_source,
@@ -215,36 +234,43 @@ def upload_web(
 
 
 @router.get("/api/sessions/{session_id}/sources")
-def api_list_sources(session_id: str, current_user: dict = Depends(get_current_user)):
-    _require_session(session_id, current_user["id"])
-    return list_sources(session_id)
+def api_list_sources(
+    session_id: str,
+    current_user: dict = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    _require_session(session_id, current_user["id"], db)
+    repo = SourceRepository(db=db)
+    return repo.list_sources(session_id)
 
 
 @router.delete("/api/sources/{source_id}")
-def api_delete_source(source_id: str):
-    source = get_source(source_id)
+def api_delete_source(
+    source_id: str,
+    db: Session = Depends(get_db),
+):
+    repo = SourceRepository(db=db)
+    source = repo.get_source(source_id)
     if not source:
         raise HTTPException(status_code=404, detail="Source not found")
 
-    delete_source(source_id)
+    repo.delete_source(source_id)
     try:
         from ai.generation import get_session_vector_store
 
         vs = get_session_vector_store(source["session_id"])
         if vs:
             matching_docs = vs.similarity_search(
-                query="",  # empty string or wildcards depending on implementation
-                k=10000,  # search ceiling to catch all chunks of this source
+                query="",
+                k=10000,
                 filter={"source_id": source_id},
             )
 
             doc_ids = [doc.id for doc in matching_docs if doc.id is not None]
 
             if hasattr(vs, "_collection") and not doc_ids:
-                # Native Chroma fallback
                 vs._collection.delete(where={"source_id": source_id})
             elif doc_ids:
-                # Unified LangChain standard approach
                 vs.delete(ids=doc_ids)
 
     except Exception as e:
@@ -253,6 +279,5 @@ def api_delete_source(source_id: str):
         logging.getLogger(__name__).error(
             f"Failed to clear source from vector store: {e}"
         )
-        pass
 
     return {"message": "Source deleted"}

@@ -1,5 +1,6 @@
 import os
 import sys
+
 from dotenv import load_dotenv
 
 # Load environment variables
@@ -11,8 +12,6 @@ from fastapi.staticfiles import StaticFiles
 
 # Ensure the backend directory is in the python path
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
-
-from db import init_db
 from routes import router
 
 app = FastAPI(
@@ -36,9 +35,6 @@ app.mount("/static", StaticFiles(directory="data/static"), name="static")
 
 # Include api routes
 app.include_router(router)
-
-# Initialize database tables on module load
-init_db()
 
 
 # Startup and Shutdown events
