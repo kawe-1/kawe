@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import Any, Sequence
 
 from langchain_core.documents import Document
+
 from .base_ingester import BaseIngester
 
 
@@ -33,18 +34,24 @@ class WebIngester(BaseIngester):
         soup = BeautifulSoup(resp.content, "lxml")
 
         # Drop boilerplate
-        for tag in soup(["script", "style", "nav", "footer", "header", "aside", "noscript"]):
+        for tag in soup(
+            ["script", "style", "nav", "footer", "header", "aside", "noscript"]
+        ):
             tag.decompose()
 
         # Prefer <main> or <article> content; fall back to <body>
-        content_node = soup.find("main") or soup.find("article") or soup.find("body") or soup
+        content_node = (
+            soup.find("main") or soup.find("article") or soup.find("body") or soup
+        )
         text = content_node.get_text(separator="\n", strip=True)
 
         if not text.strip():
             raise ValueError(f"No readable text found at {source}.")
 
-        title = soup.title.string.strip() if soup.title and soup.title.string else source
-
+        title = (
+            soup.title.string.strip() if soup.title and soup.title.string else source
+        )
+        print(title[:300])
         return [
             Document(
                 page_content=text,

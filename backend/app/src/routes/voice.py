@@ -10,8 +10,10 @@ from typing import Optional
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Request, UploadFile
 from fastapi.responses import Response as FastResponse
 from pydantic import BaseModel
+from sqlalchemy.orm import Session
 
 from auth import get_current_user
+from db.database import get_db
 
 from .common import _require_session
 
@@ -98,8 +100,9 @@ async def api_voice_query(
     request: Request,
     file: Optional[UploadFile] = File(None),
     current_user: dict = Depends(get_current_user),
+    db: Session = Depends(get_db),
 ):
-    _require_session(session_id, current_user["id"])
+    _require_session(session_id, current_user["id"], db)
 
     temp_dir = "data/static"
     os.makedirs(temp_dir, exist_ok=True)
@@ -207,8 +210,9 @@ def api_tts(
     session_id: str,
     req: TtsRequest,
     current_user: dict = Depends(get_current_user),
+    db: Session = Depends(get_db),
 ):
-    _require_session(session_id, current_user["id"])
+    _require_session(session_id, current_user["id"], db)
     if not req.text.strip():
         raise HTTPException(status_code=400, detail="Text cannot be empty.")
 
@@ -236,8 +240,9 @@ async def api_conversation(
     history: str = Form("[]"),
     voice_id: Optional[str] = Form(None),
     current_user: dict = Depends(get_current_user),
+    db: Session = Depends(get_db),
 ):
-    _require_session(session_id, current_user["id"])
+    _require_session(session_id, current_user["id"], db)
 
     temp_dir = "data/static"
     os.makedirs(temp_dir, exist_ok=True)

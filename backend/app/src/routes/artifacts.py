@@ -23,7 +23,7 @@ def api_generate_notes(
     db: Session = Depends(get_db),
 ):
     repo = ArtifactRepository(db=db)
-    session = _require_session(session_id, current_user["id"])
+    session = _require_session(session_id, current_user["id"], db)
 
     try:
         notes = repo.generate_notes(session_id, session["title"])
@@ -40,7 +40,7 @@ def api_get_notes(
     db: Session = Depends(get_db),
 ):
     repo = ArtifactRepository(db=db)
-    _require_session(session_id, current_user["id"])
+    _require_session(session_id, current_user["id"], db)
     notes = repo.get_artifact(session_id, "notes")
     if not notes:
         raise HTTPException(status_code=404, detail="Notes not generated yet")
@@ -55,7 +55,7 @@ def api_generate_quiz(
     db: Session = Depends(get_db),
 ):
     repo = ArtifactRepository(db=db)
-    session = _require_session(session_id, current_user["id"])
+    session = _require_session(session_id, current_user["id"], db)
     from ai.generation import generate_quiz
 
     try:
@@ -75,7 +75,7 @@ def api_get_quiz(
     db: Session = Depends(get_db),
 ):
     repo = ArtifactRepository(db=db)
-    _require_session(session_id, current_user["id"])
+    _require_session(session_id, current_user["id"], db)
     quiz = repo.get_artifact(session_id, "quiz")
     if not quiz:
         raise HTTPException(status_code=404, detail="Quiz not generated yet")
@@ -89,7 +89,7 @@ def api_generate_flashcards(
     db: Session = Depends(get_db),
 ):
     repo = ArtifactRepository(db=db)
-    session = _require_session(session_id, current_user["id"])
+    session = _require_session(session_id, current_user["id"], db)
     from ai.generation import generate_flashcards
 
     try:
@@ -107,7 +107,7 @@ def api_get_flashcards(
     db: Session = Depends(get_db),
 ):
     repo = ArtifactRepository(db=db)
-    _require_session(session_id, current_user["id"])
+    _require_session(session_id, current_user["id"], db)
     deck = repo.get_artifact(session_id, "flashcards")
     if not deck:
         raise HTTPException(status_code=404, detail="Flashcards not generated yet")
@@ -121,7 +121,7 @@ def api_generate_concepts(
     db: Session = Depends(get_db),
 ):
     repo = ArtifactRepository(db=db)
-    session = _require_session(session_id, current_user["id"])
+    session = _require_session(session_id, current_user["id"], db)
     from ai.generation import generate_concepts
 
     try:
@@ -139,7 +139,7 @@ def api_get_concepts(
     db: Session = Depends(get_db),
 ):
     repo = ArtifactRepository(db=db)
-    _require_session(session_id, current_user["id"])
+    _require_session(session_id, current_user["id"], db)
     concepts = repo.get_artifact(session_id, "concepts")
     if not concepts:
         raise HTTPException(status_code=404, detail="Concepts not generated yet")

@@ -25,7 +25,7 @@ def api_chat(
     db: Session = Depends(get_db),
 ):
     repo = ChatRepository(db=db)
-    session = _require_session(session_id, current_user["id"])
+    session = _require_session(session_id, current_user["id"], db)
     user_msg_id = f"msg_{uuid.uuid4().hex[:12]}"
     repo.add_chat_message(user_msg_id, session_id, "user", req.message)
 
@@ -64,7 +64,7 @@ def api_chat_history(
     db: Session = Depends(get_db),
 ):
     repo = ChatRepository(db=db)
-    _require_session(session_id, current_user["id"])
+    _require_session(session_id, current_user["id"], db)
     history = repo.get_chat_history(session_id)
     return [
         {"role": h["role"], "message": h["message"], "created_at": h["created_at"]}
