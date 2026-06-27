@@ -24,9 +24,10 @@ def api_generate_notes(
 ):
     repo = ArtifactRepository(db=db)
     session = _require_session(session_id, current_user["id"], db)
+    from ai.generation import generate_notes
 
     try:
-        notes = repo.generate_notes(session_id, session["title"])
+        notes = generate_notes(session_id, session["title"])
         repo.save_artifact(session_id, "notes", notes)
         return notes
     except ValueError as e:
