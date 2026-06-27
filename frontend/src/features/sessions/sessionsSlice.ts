@@ -39,10 +39,10 @@ export const sessionsSlice = createSlice({
   reducers: {
     setActiveSession: (state, action: PayloadAction<string | null>) => {
       state.activeSessionId = action.payload;
+      state.activeSessionDetail = null;
+      state.detailStatus = 'idle';
       if (action.payload) {
         state.activeTab = 'notes';
-      } else {
-        state.activeSessionDetail = null;
       }
     },
     setActiveTab: (state, action: PayloadAction<string>) => {

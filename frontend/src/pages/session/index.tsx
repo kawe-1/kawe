@@ -20,16 +20,14 @@ export default function SessionPage() {
   const { layout } = useAppSelector(state => state.ui);
 
   useEffect(() => {
-    if (id && id !== activeSessionId) {
+    if (id) {
       dispatch(setActiveSession(id));
       dispatch(fetchSessionDetail(id));
     }
-
-    // Ensure sessions list is available for sidebar when deep-linking to a session
     if (id && sessions.length === 0) {
       dispatch(fetchSessions());
     }
-  }, [id, activeSessionId, dispatch, sessions.length]);
+  }, [id, dispatch]);
 
   if (detailStatus === 'loading' || !activeSessionDetail) {
     return (
