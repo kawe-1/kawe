@@ -5,7 +5,8 @@ python-dotenv
 pydantic
 pydantic-settings
 sqlalchemy
-alembic 
+alembic
+psycopg2
 
 # AI & Orchestration
 langchain
