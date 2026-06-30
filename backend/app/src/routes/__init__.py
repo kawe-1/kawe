@@ -5,6 +5,7 @@ from helper import background_ingest_source
 from .artifacts import router as artifacts_router
 from .auth import router as auth_router
 from .chat import router as chat_router
+from .groups import router as group_router
 from .jobs import router as jobs_router
 from .sessions import router as sessions_router
 from .sources import router as sources_router
@@ -19,6 +20,7 @@ router.include_router(artifacts_router)
 router.include_router(chat_router)
 router.include_router(voice_router)
 router.include_router(jobs_router)
+router.include_router(group_router)
 
 # Expose compatibility names used by tests and legacy imports.
 generate_speech = synthesize_speech
