@@ -15,13 +15,26 @@ Usage (plain Python / FastAPI):
         user = repo.get_by_email("simeon@example.com")
 """
 
+import secrets
+import string
 from typing import Any, Optional
 
 from sqlalchemy import select
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.orm import Session
 
-from .models import Artifact, ChatMessage, Job, Source, StudySession, User
+from .models import (
+    Artifact,
+    ChatMessage,
+    Course,
+    CourseMember,
+    Group,
+    GroupMember,
+    Job,
+    Source,
+    StudySession,
+    User,
+)
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -29,6 +42,12 @@ from .models import Artifact, ChatMessage, Job, Source, StudySession, User
 def _to_dict(obj) -> dict:
     """Convert a mapped instance to a plain dict (mirrors old dict(row) pattern)."""
     return {c.name: getattr(obj, c.name) for c in obj.__table__.columns}
+
+
+def _generate_code(length: int = 8) -> str:
+    chars = string.ascii_uppercase + string.digits
+    raw = "".join(secrets.choice(chars) for _ in range(length))
+    return f"KW-{raw}"
 
 
 # ── User ──────────────────────────────────────────────────────────────────────
@@ -285,3 +304,134 @@ class JobRepository:
     def get_job(self, job_id: str) -> Optional[dict[str, Any]]:
         job = self.db.get(Job, job_id)
         return _to_dict(job) if job else None
+
+
+class GroupRepository:
+    def __init__(self, db: Session):
+        self.db = db
+
+    def create_group(self, group_id: str, name: str, created_by: str) -> dict[str, Any]:
+        # Ensure unique code
+        while True:
+            code = _generate_code()
+            existing = self.db.scalar(select(Group).where(Group.code == code))
+            if not existing:
+                break
+
+        group = Group(id=group_id, name=name, code=code, created_by=created_by)
+        self.db.add(group)
+
+        # Creator becomes admin member
+        member = GroupMember(group_id=group_id, user_id=created_by, role="admin")
+        self.db.add(member)
+        self.db.commit()
+        self.db.refresh(group)
+
+        return {
+            "id": group.id,
+            "name": group.name,
+            "code": group.code,
+            "memberCount": 1,
+            "role": "admin",
+        }
+
+    def join_group(self, code: str, user_id: str) -> dict[str, Any]:
+        group = self.db.scalar(select(Group).where(Group.code == code.upper()))
+        if not group:
+            return None
+
+        # Idempotent — don't double-add
+        existing = self.db.get(GroupMember, (group.id, user_id))
+        if not existing:
+            member = GroupMember(group_id=group.id, user_id=user_id, role="member")
+            self.db.add(member)
+            self.db.commit()
+
+        member_count = len(
+            self.db.scalars(
+                select(GroupMember).where(GroupMember.group_id == group.id)
+            ).all()
+        )
+        role = existing.role if existing else "member"
+
+        return {
+            "id": group.id,
+            "name": group.name,
+            "code": group.code,
+            "memberCount": member_count,
+            "role": role,
+        }
+
+    def get_group_for_user(self, user_id: str) -> Optional[dict[str, Any]]:
+        membership = self.db.scalar(
+            select(GroupMember).where(GroupMember.user_id == user_id)
+        )
+        if not membership:
+            return None
+        group = self.db.get(Group, membership.group_id)
+        if not group:
+            return None
+        member_count = len(
+            self.db.scalars(
+                select(GroupMember).where(GroupMember.group_id == group.id)
+            ).all()
+        )
+        return {
+            "id": group.id,
+            "name": group.name,
+            "code": group.code,
+            "memberCount": member_count,
+            "role": membership.role,
+        }
+
+
+class CourseRepository:
+    def __init__(self, db: Session):
+        self.db = db
+
+    def join_course(self, code: str, user_id: str) -> Optional[dict[str, Any]]:
+        course = self.db.scalar(select(Course).where(Course.code == code.upper()))
+        if not course:
+            return None
+
+        existing = self.db.get(CourseMember, (course.id, user_id))
+        if not existing:
+            member = CourseMember(course_id=course.id, user_id=user_id)
+            self.db.add(member)
+            self.db.commit()
+
+        member_count = len(
+            self.db.scalars(
+                select(CourseMember).where(CourseMember.course_id == course.id)
+            ).all()
+        )
+
+        return {
+            "id": course.id,
+            "name": course.name,
+            "code": course.code,
+            "instructor": course.instructor,
+            "memberCount": member_count,
+        }
+
+    def get_course_for_user(self, user_id: str) -> Optional[dict[str, Any]]:
+        membership = self.db.scalar(
+            select(CourseMember).where(CourseMember.user_id == user_id)
+        )
+        if not membership:
+            return None
+        course = self.db.get(Course, membership.course_id)
+        if not course:
+            return None
+        member_count = len(
+            self.db.scalars(
+                select(CourseMember).where(CourseMember.course_id == course.id)
+            ).all()
+        )
+        return {
+            "id": course.id,
+            "name": course.name,
+            "code": course.code,
+            "instructor": course.instructor,
+            "memberCount": member_count,
+        }
