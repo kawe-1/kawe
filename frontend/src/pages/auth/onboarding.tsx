@@ -109,6 +109,7 @@ export default function OnboardingPage() {
       institution,
       group_id: finalProfile.group?.id ?? null,
       course_id: finalProfile.course?.id ?? null,
+      has_onboarded: true,
     }).catch(() => {});
 
     navigate('/dashboard');
