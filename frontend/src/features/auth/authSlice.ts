@@ -6,9 +6,23 @@ interface AuthState {
   profile: UserProfile;
 }
 
+const EMPTY_PROFILE: UserProfile = {
+  name: '',
+  bio: '',
+  avatar: '',
+  subjects: [],
+  style: '',
+  accountType: 'individual',
+  subjectArea: [],
+  academicLevel: '',
+  institution: '',
+  group: null,
+  course: null,
+};
+
 const initialState: AuthState = {
   status: 'app',
-  profile: { name: 'Student', bio: '', avatar: '' },
+  profile: { ...EMPTY_PROFILE, name: 'Student' },
 };
 
 export const authSlice = createSlice({
@@ -23,7 +37,7 @@ export const authSlice = createSlice({
     },
     logout: (state) => {
       state.status = 'signin';
-      state.profile = { name: '', bio: '', avatar: '' };
+      state.profile = { ...EMPTY_PROFILE };
     },
   },
 });

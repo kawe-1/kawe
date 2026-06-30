@@ -18,16 +18,21 @@ export default function AuthPage() {
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
 
-  const handleAuthSuccess = (token: string, user: { id: string; email: string; name: string }) => {
+  const handleAuthSuccess = (token: string, user: { id: string; email: string; name: string, has_onboarded?: boolean }) => {
     // 1. Store JWT token securely in localStorage
     localStorage.setItem('kawe_token', token);
 
     // 2. Synchronize our auth slice with the authenticated user's profile
     dispatch(updateProfile({ name: user.name, avatar: '', subjects: [], style: '' }));
-    dispatch(setAuthStatus('onboarding'));
 
-    // 3. Send them to personalized onboarding steps
-    navigate('/onboarding');
+    // 3. Route based on whether this user has already completed onboarding
+    if (user.has_onboarded) {
+      dispatch(setAuthStatus('app'));
+      navigate('/dashboard');
+    } else {
+      dispatch(setAuthStatus('onboarding'));
+      navigate('/onboarding');
+    }
   };
 
   const handleSubmit = async (e?: React.FormEvent) => {

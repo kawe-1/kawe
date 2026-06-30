@@ -1,0 +1,126 @@
+import uuid
+
+from fastapi import APIRouter, Depends, HTTPException
+from pydantic import BaseModel
+from sqlalchemy.orm import Session
+
+from auth import get_current_user
+from db.database import get_db
+from db.repositories import CourseRepository, GroupRepository, UserRepository
+
+router = APIRouter()
+
+
+class CreateGroupRequest(BaseModel):
+    name: str
+
+
+class JoinGroupRequest(BaseModel):
+    code: str
+
+
+class JoinCourseRequest(BaseModel):
+    code: str
+
+
+class UpdateProfileRequest(BaseModel):
+    name: str | None = None
+    account_type: str | None = None
+    subject_area: list[str] | None = None
+    academic_level: str | None = None
+    institution: str | None = None
+    group_id: str | None = None
+    course_id: str | None = None
+    has_onboarded: bool | None = None
+
+
+@router.post("/api/groups")
+def api_create_group(
+    req: CreateGroupRequest,
+    current_user: dict = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    if not req.name.strip():
+        raise HTTPException(status_code=400, detail="Group name cannot be empty.")
+    repo = GroupRepository(db=db)
+    group_id = f"grp_{uuid.uuid4().hex[:12]}"
+    return repo.create_group(group_id, req.name.strip(), created_by=current_user["id"])
+
+
+@router.post("/api/groups/join")
+def api_join_group(
+    req: JoinGroupRequest,
+    current_user: dict = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    repo = GroupRepository(db=db)
+    group = repo.join_group(req.code.strip(), current_user["id"])
+    if not group:
+        raise HTTPException(status_code=404, detail="No group found with that code.")
+    return group
+
+
+@router.post("/api/courses/join")
+def api_join_course(
+    req: JoinCourseRequest,
+    current_user: dict = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    repo = CourseRepository(db=db)
+    course = repo.join_course(req.code.strip(), current_user["id"])
+    if not course:
+        raise HTTPException(status_code=404, detail="No course found with that code.")
+    return course
+
+
+@router.put("/api/users/me")
+def api_update_profile(
+    req: UpdateProfileRequest,
+    current_user: dict = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    repo = UserRepository(db=db)
+    payload = req.model_dump(exclude_none=True)
+    # Remove group_id/course_id — those are managed via join endpoints, not direct writes
+    payload.pop("group_id", None)
+    payload.pop("course_id", None)
+    repo.update_profile(current_user["id"], payload)
+    return {"ok": True}
+
+
+@router.get("/api/auth/me")
+def api_me_full(
+    current_user: dict = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """
+    Extended /me that returns the full profile including group/course.
+    Replace or merge with the existing /api/auth/me in auth.py.
+    """
+    user_repo = UserRepository(db=db)
+    group_repo = GroupRepository(db=db)
+    course_repo = CourseRepository(db=db)
+
+    user = user_repo.get_user_by_id(current_user["id"])
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    group = None
+    course = None
+    if user.get("account_type") == "study_group":
+        group = group_repo.get_group_for_user(user["id"])
+    elif user.get("account_type") == "course_group":
+        course = course_repo.get_course_for_user(user["id"])
+
+    return {
+        "id": user["id"],
+        "email": user["email"],
+        "name": user["name"],
+        "has_onboarded": user.get("has_onboarded", False),
+        "account_type": user.get("account_type", "individual"),
+        "academic_level": user.get("academic_level"),
+        "institution": user.get("institution"),
+        "subject_area": user.get("subject_area", []),
+        "group": group,
+        "course": course,
+    }

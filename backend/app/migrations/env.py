@@ -10,6 +10,18 @@ load_dotenv()
 print("DB URL:", os.environ.get("DATABASE_URL", "NOT FOUND"))
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 from src.db.database import Base
+from src.db.models import (
+    Artifact,
+    ChatMessage,
+    Course,
+    CourseMember,
+    Group,
+    GroupMember,
+    Job,
+    Source,
+    StudySession,
+    User,
+)  # noqa: F401
 
 # ... leave the rest of your default run_migrations_offline / online functions as they are
 # this is the Alembic Config object, which provides

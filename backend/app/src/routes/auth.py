@@ -41,6 +41,7 @@ def _user_response(user: dict, token: str) -> dict:
             "id": user["id"],
             "email": user["email"],
             "name": user["name"],
+            "has_onboarded": user["has_onboarded"],
         },
     }
 

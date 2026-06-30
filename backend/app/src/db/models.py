@@ -1,8 +1,10 @@
+import secrets
+import string
 from datetime import datetime, timezone
 from typing import Any
 
-from sqlalchemy import DateTime, ForeignKey, String, Text, func
-from sqlalchemy.dialects.postgresql import JSONB
+from sqlalchemy import Boolean, DateTime, ForeignKey, String, Text, func
+from sqlalchemy.dialects.postgresql import ARRAY, JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from .database import Base
@@ -10,6 +12,13 @@ from .database import Base
 
 def _now() -> datetime:
     return datetime.now(timezone.utc)
+
+
+def _generate_code(length: int = 8) -> str:
+    """Generate a short alphanumeric invite code e.g. KW-A3F9B2."""
+    chars = string.ascii_uppercase + string.digits
+    raw = "".join(secrets.choice(chars) for _ in range(length))
+    return f"KW-{raw}"
 
 
 class User(Base):
@@ -23,8 +32,18 @@ class User(Base):
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), default=_now
     )
+    has_onboarded: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, default=False, server_default="false"
+    )
+    account_type: Mapped[str] = mapped_column(
+        String, nullable=False, default="individual", server_default="individual"
+    )
+    academic_level: Mapped[str | None] = mapped_column(String, nullable=True)
+    institution: Mapped[str | None] = mapped_column(String, nullable=True)
+    subject_area: Mapped[list[str]] = mapped_column(
+        ARRAY(String), nullable=False, default=list, server_default="{}"
+    )
 
-    # relationships
     sessions: Mapped[list["StudySession"]] = relationship(
         "StudySession", back_populates="user", cascade="all, delete-orphan"
     )
@@ -127,3 +146,77 @@ class Job(Base):
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), default=_now
     )
+
+
+class Group(Base):
+    __tablename__ = "groups"
+
+    id: Mapped[str] = mapped_column(String, primary_key=True)
+    name: Mapped[str] = mapped_column(String, nullable=False)
+    code: Mapped[str] = mapped_column(
+        String, unique=True, nullable=False, default=_generate_code
+    )
+    created_by: Mapped[str] = mapped_column(
+        String, ForeignKey("users.id", ondelete="SET NULL"), nullable=True
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), default=_now
+    )
+
+    members: Mapped[list["GroupMember"]] = relationship(
+        "GroupMember", back_populates="group", cascade="all, delete-orphan"
+    )
+
+
+class GroupMember(Base):
+    __tablename__ = "group_members"
+
+    group_id: Mapped[str] = mapped_column(
+        String, ForeignKey("groups.id", ondelete="CASCADE"), primary_key=True
+    )
+    user_id: Mapped[str] = mapped_column(
+        String, ForeignKey("users.id", ondelete="CASCADE"), primary_key=True
+    )
+    role: Mapped[str] = mapped_column(
+        String, nullable=False, default="member"
+    )  # 'admin' | 'member'
+    joined_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), default=_now
+    )
+
+    group: Mapped["Group"] = relationship("Group", back_populates="members")
+
+
+class Course(Base):
+    __tablename__ = "courses"
+
+    id: Mapped[str] = mapped_column(String, primary_key=True)
+    name: Mapped[str] = mapped_column(String, nullable=False)
+    code: Mapped[str] = mapped_column(String, unique=True, nullable=False)
+    instructor: Mapped[str] = mapped_column(String, nullable=False, default="")
+    created_by: Mapped[str | None] = mapped_column(
+        String, ForeignKey("users.id", ondelete="SET NULL"), nullable=True
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), default=_now
+    )
+
+    members: Mapped[list["CourseMember"]] = relationship(
+        "CourseMember", back_populates="course", cascade="all, delete-orphan"
+    )
+
+
+class CourseMember(Base):
+    __tablename__ = "course_members"
+
+    course_id: Mapped[str] = mapped_column(
+        String, ForeignKey("courses.id", ondelete="CASCADE"), primary_key=True
+    )
+    user_id: Mapped[str] = mapped_column(
+        String, ForeignKey("users.id", ondelete="CASCADE"), primary_key=True
+    )
+    joined_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), default=_now
+    )
+
+    course: Mapped["Course"] = relationship("Course", back_populates="members")
