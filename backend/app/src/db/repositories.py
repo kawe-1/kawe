@@ -76,6 +76,23 @@ class UserRepository:
             user.google_id = google_id
             self.db.commit()
 
+    def update_profile(self, user_id: str, payload: dict) -> None:
+        user = self.db.get(User, user_id)
+        if not user:
+            return
+        allowed = {
+            "name",
+            "account_type",
+            "academic_level",
+            "institution",
+            "subject_area",
+            "has_onboarded",
+        }
+        for key, val in payload.items():
+            if key in allowed:
+                setattr(user, key, val)
+        self.db.commit()
+
 
 # ── StudySession ──────────────────────────────────────────────────────────────
 
