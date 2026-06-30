@@ -97,6 +97,7 @@ export default function OnboardingPage() {
       institution,
       group: overrides?.group ?? groupResult,
       course: overrides?.course ?? courseResult,
+      has_onboarded: true,
     };
     dispatch(updateProfile(finalProfile));
     dispatch(setAuthStatus('app'));
