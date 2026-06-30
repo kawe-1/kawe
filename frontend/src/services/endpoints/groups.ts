@@ -9,8 +9,8 @@ export interface CreateGroupResponse {
   role: 'admin' | 'member';
 }
 
-export interface JoinGroupResponse extends GroupInfo {}
-export interface JoinCourseResponse extends CourseInfo {}
+export interface JoinGroupResponse extends GroupInfo { }
+export interface JoinCourseResponse extends CourseInfo { }
 
 export async function createGroup(name: string): Promise<CreateGroupResponse> {
   const { data } = await api.post<CreateGroupResponse>('/api/groups', { name });
@@ -35,6 +35,7 @@ export async function updateUserProfile(payload: {
   institution?: string;
   group_id?: string | null;
   course_id?: string | null;
+  has_onboarded: boolean;
 }): Promise<void> {
   await api.put('/api/users/me', payload);
 }
