@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 from typing import Any, Sequence
 
 from langchain_core.documents import Document
@@ -16,9 +17,23 @@ class YouTubeIngester(BaseIngester):
     def load(self, source: str, **kwargs: Any) -> Sequence[Document]:
         video_id = self._extract_video_id(source)
 
-        from youtube_transcript_api import YouTubeTranscriptApi, NoTranscriptFound, TranscriptsDisabled
+        from youtube_transcript_api import (
+            NoTranscriptFound,
+            TranscriptsDisabled,
+            YouTubeTranscriptApi,
+        )
+        from youtube_transcript_api.proxies import WebshareProxyConfig
 
-        ytt = YouTubeTranscriptApi()
+        proxy_config = None
+        proxy_username = os.getenv("PROXY_USERNAME")
+        proxy_password = os.getenv("PROXY_PASSWORD")
+
+        if proxy_username and proxy_password:
+            proxy_config = WebshareProxyConfig(
+                proxy_username=proxy_username, proxy_password=proxy_password
+            )
+
+        ytt = YouTubeTranscriptApi(proxy_config=proxy_config)
         try:
             # fetch() returns a FetchedTranscript iterable of snippets with .text
             transcript = ytt.fetch(video_id)
@@ -37,7 +52,11 @@ class YouTubeIngester(BaseIngester):
         return [
             Document(
                 page_content=text,
-                metadata={"source": source, "source_type": "youtube", "video_id": video_id},
+                metadata={
+                    "source": source,
+                    "source_type": "youtube",
+                    "video_id": video_id,
+                },
             )
         ]
 
