@@ -37,6 +37,16 @@ export async function loginUser(email: string, password: string): Promise<AuthRe
 }
 
 /**
+ * Authenticate (or register) a user via a Google ID token issued by GSI.
+ * The backend verifies the token, creates the account if needed, and returns
+ * the same AuthResponse shape as email/password flows.
+ */
+export async function googleAuthUser(credential: string): Promise<AuthResponse> {
+    const { data } = await api.post<AuthResponse>('/api/auth/google', { credential });
+    return data;
+}
+
+/**
  * Get current user profile details via stored authentication headers.
  */
 export async function getMe(): Promise<AuthUser> {
