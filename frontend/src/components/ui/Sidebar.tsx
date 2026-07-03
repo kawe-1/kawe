@@ -1,9 +1,75 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useAppSelector, useAppDispatch } from '../../app/hooks';
 import { setActiveSession, setActiveTab, setShowCreateModal } from '../../features/sessions/sessionsSlice';
-import { setSidebarOpen, toggleDarkMode } from '../../features/ui/uiSlice';
+import { setSidebarOpen, toggleDarkMode, setShowAddWorkspaceModal } from '../../features/ui/uiSlice';
+import { setActiveWorkspace } from '../../features/auth/authSlice';
 import { SparkIcon, TabIcon, TAB_LABELS } from './Icons';
 import { useNavigate } from 'react-router-dom';
+import { getSessionWorkspace } from '../../utils/workspaceSessions';
+
+function WorkspaceIcon({ type }: { type: string }) {
+  if (type === 'study_group') return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+      <circle cx="8" cy="7" r="3"/><path d="M2 20c0-3 2.7-5.5 6-5.5"/><circle cx="16" cy="7" r="3"/><path d="M22 20c0-3-2.7-5.5-6-5.5"/><path d="M12 15c3.3 0 6 2.5 6 5.5H6c0-3 2.7-5.5 6-5.5z"/>
+    </svg>
+  );
+  if (type === 'course_group') return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+      <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
+    </svg>
+  );
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+      <circle cx="12" cy="8" r="4"/><path d="M4 20c0-3.8 3.6-7 8-7s8 3.2 8 7"/>
+    </svg>
+  );
+}
+
+function WorkspaceSwitcher() {
+  const dispatch = useAppDispatch();
+  const { profile } = useAppSelector(state => state.auth);
+  const [open, setOpen] = useState(false);
+
+  const workspaces = profile?.workspaces || [];
+  const activeId = profile?.activeWorkspaceId || 'individual';
+  const active = workspaces.find(w => w.id === activeId) || workspaces[0];
+
+  const handleSelect = (id: string) => {
+    dispatch(setActiveWorkspace(id));
+    setOpen(false);
+  };
+
+  const handleAdd = () => {
+    setOpen(false);
+    dispatch(setShowAddWorkspaceModal(true));
+  };
+
+  return (
+    <div className="ws-switcher">
+      <button className="ws-switcher-btn" onClick={() => setOpen(v => !v)}>
+        <span className="ws-switcher-icon"><WorkspaceIcon type={active?.type || 'individual'}/></span>
+        <span className="ws-switcher-label">{active?.label || 'Individual'}</span>
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" style={{ marginLeft: 'auto', transform: open ? 'rotate(180deg)' : 'none', transition: 'transform .15s' }}>
+          <path d="M6 9l6 6 6-6"/>
+        </svg>
+      </button>
+      {open && (
+        <div className="ws-switcher-menu">
+          {workspaces.map(w => (
+            <button key={w.id} className={`ws-switcher-item${w.id === activeId ? ' active' : ''}`} onClick={() => handleSelect(w.id)}>
+              <span className="ws-switcher-icon"><WorkspaceIcon type={w.type}/></span>
+              <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{w.label}</span>
+            </button>
+          ))}
+          <button className="ws-switcher-item ws-switcher-add" onClick={handleAdd}>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M12 5v14M5 12h14"/></svg>
+            Add group or class
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
 
 export function Sidebar() {
   const dispatch = useAppDispatch();
@@ -16,6 +82,10 @@ export function Sidebar() {
   const sessionFromList = sessions.find(s => s.id === activeSessionId);
   const activeSession = sessionFromList || (activeSessionDetail && activeSessionDetail.id === activeSessionId ? { id: activeSessionDetail.id, title: activeSessionDetail.title } : undefined);
   const showTabs = layout === 'sidebar' && activeSession;
+
+  // Scope the session list to whichever workspace is active, same as the dashboard.
+  const activeWorkspaceId = profile?.activeWorkspaceId || 'individual';
+  const visibleSessions = sessions.filter(s => getSessionWorkspace(s.id) === activeWorkspaceId);
 
   const onGoHome = () => {
     dispatch(setActiveSession(null));
@@ -46,6 +116,8 @@ export function Sidebar() {
         </button>
       </div>
 
+      <WorkspaceSwitcher/>
+
       <button className="sb-new" onClick={onNewSession}>
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M12 5v14M5 12h14" /></svg>
         New session
@@ -53,7 +125,7 @@ export function Sidebar() {
 
       <div className="sb-section">Your sessions</div>
       <div className="sb-items">
-        {sessions.map(s => (
+        {visibleSessions.map(s => (
           <button key={s.id} className={`sb-item${activeSession?.id === s.id ? ' active' : ''}`}
             onClick={() => onSelectSession(s)}>
             {/* <span className="sb-dot" style={{ background: s.color }}></span> */}

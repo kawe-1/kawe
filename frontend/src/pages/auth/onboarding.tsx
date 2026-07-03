@@ -1,17 +1,11 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../../app/hooks';
-import { setAuthStatus, updateProfile } from '../../features/auth/authSlice';
+import { setAuthStatus, updateProfile, addWorkspace } from '../../features/auth/authSlice';
 import { SparkIcon } from '../../components/ui/Icons';
-import { createGroup, joinGroup, joinCourse } from '../../services/endpoints/groups';
-import { updateUserProfile } from '../../services/endpoints/groups';
-import type { AccountType, GroupInfo, CourseInfo } from '../../types/user';
-
-const OB_SUBJECTS = [
-  'Biology', 'Chemistry', 'Physics', 'Psychology', 'Computer Science',
-  'Mathematics', 'History', 'Literature', 'Economics', 'Engineering', 'Medicine', 'Law',
-];
-const OB_LEVELS = ['High School', 'Undergraduate', 'Postgraduate', 'Professional'];
+import { createGroup, joinGroup, joinCourse, updateUserProfile } from '../../services/endpoints/groups';
+import { ACADEMIC_LEVELS, ACADEMIC_FIELDS } from '../../constants/academics';
+import type { AccountType, AcademicLevel, GroupInfo, CourseInfo, Workspace } from '../../types/user';
 
 const ACCOUNT_TYPES: { id: AccountType; label: string; desc: string }[] = [
   { id: 'individual',   label: 'Individual',   desc: 'Study solo at your own pace' },
@@ -53,8 +47,8 @@ export default function OnboardingPage() {
   const [step,        setStep]        = useState(0);
   const [dName,       setDName]       = useState(userName);
   const [accountType, setAccountType] = useState<AccountType>('individual');
-  const [subs,        setSubs]        = useState<string[]>([]);
-  const [level,       setLevel]       = useState('');
+  const [level,       setLevel]       = useState<AcademicLevel | ''>('');
+  const [field,       setField]       = useState('');
   const [institution, setInstitution] = useState('');
   const [groupMode,   setGroupMode]   = useState<'create' | 'join'>('create');
   const [groupName,   setGroupName]   = useState('');
@@ -78,7 +72,7 @@ export default function OnboardingPage() {
   const canGo = (() => {
     if (step === 0) return dName.trim().length > 0;
     if (step === 1) return true;
-    if (step === 2) return subs.length > 0 && level !== '';
+    if (step === 2) return level !== '' && field !== '';
     if (step === 3) {
       if (accountType === 'course_group') return joinCode.trim().length > 0;
       return groupMode === 'create' ? groupName.trim().length > 0 : joinCode.trim().length > 0;
@@ -87,28 +81,37 @@ export default function OnboardingPage() {
   })();
 
   const finish = (overrides?: { group?: GroupInfo | null; course?: CourseInfo | null }) => {
+    const finalGroup  = overrides?.group ?? groupResult;
+    const finalCourse = overrides?.course ?? courseResult;
+
+    const workspace: Workspace | null =
+      accountType === 'study_group' && finalGroup
+        ? { id: finalGroup.id, type: 'study_group', label: finalGroup.name, group: finalGroup }
+      : accountType === 'course_group' && finalCourse
+        ? { id: finalCourse.id, type: 'course_group', label: finalCourse.name, course: finalCourse }
+      : null;
+
     const finalProfile = {
       ...profile,
       name: dName.trim() || userName,
       accountType,
-      subjectArea: subs,
-      subjects: subs,
       academicLevel: level,
+      academicField: field,
       institution,
-      group: overrides?.group ?? groupResult,
-      course: overrides?.course ?? courseResult,
+      group: finalGroup,
+      course: finalCourse,
     };
     dispatch(updateProfile(finalProfile));
+    if (workspace) dispatch(addWorkspace(workspace));
     dispatch(setAuthStatus('app'));
 
     updateUserProfile({
       name: finalProfile.name,
       account_type: accountType,
-      subject_area: subs,
       academic_level: level,
       institution,
-      group_id: finalProfile.group?.id ?? null,
-      course_id: finalProfile.course?.id ?? null,
+      group_id: finalGroup?.id ?? null,
+      course_id: finalCourse?.id ?? null,
       has_onboarded: true,
     }).catch(() => {});
 
@@ -164,7 +167,7 @@ export default function OnboardingPage() {
     if (step === 1) return (
       <div className="onboard-step" key="s1">
         <h1>How are you studying?</h1>
-        <p className="ob-sub">Choose the setup that fits how you learn.</p>
+        <p className="ob-sub">Choose the setup that fits how you learn. You can add more later from the sidebar.</p>
         <div className="ob-account-types">
           {ACCOUNT_TYPES.map(({ id, label, desc }) => (
             <button
@@ -186,27 +189,31 @@ export default function OnboardingPage() {
     if (step === 2) return (
       <div className="onboard-step" key="s2">
         <h1>Your academic profile</h1>
-        <p className="ob-sub">Help us tailor your experience.</p>
-
-        <p className="ob-field-label">Subject area</p>
-        <div className="ob-chips" style={{ marginBottom: 20 }}>
-          {OB_SUBJECTS.map(s => (
-            <button key={s} className={`ob-chip${subs.includes(s) ? ' selected' : ''}`}
-                    onClick={() => setSubs(p => p.includes(s) ? p.filter(x => x !== s) : [...p, s])}>
-              {s}
-            </button>
-          ))}
-        </div>
+        <p className="ob-sub">What class are you in? This helps us tailor your experience.</p>
 
         <p className="ob-field-label">Academic level</p>
         <div className="ob-chips" style={{ marginBottom: 20 }}>
-          {OB_LEVELS.map(l => (
-            <button key={l} className={`ob-chip${level === l ? ' selected' : ''}`}
-                    onClick={() => setLevel(l)}>
-              {l}
+          {ACADEMIC_LEVELS.map(l => (
+            <button key={l.id} className={`ob-chip${level === l.id ? ' selected' : ''}`}
+                    onClick={() => { setLevel(l.id); setField(''); }}>
+              {l.label}
             </button>
           ))}
         </div>
+
+        {level !== '' && (
+          <>
+            <p className="ob-field-label">Field of study</p>
+            <div className="ob-chips" style={{ marginBottom: 20 }}>
+              {ACADEMIC_FIELDS[level].map(f => (
+                <button key={f} className={`ob-chip${field === f ? ' selected' : ''}`}
+                        onClick={() => setField(f)}>
+                  {f}
+                </button>
+              ))}
+            </div>
+          </>
+        )}
 
         <p className="ob-field-label">Institution <span style={{ fontWeight: 400, textTransform: 'none', letterSpacing: 0, color: 'var(--muted)', fontSize: 11 }}>(optional)</span></p>
         <input className="ob-input" style={{ width: '100%', boxSizing: 'border-box' }}
@@ -220,7 +227,7 @@ export default function OnboardingPage() {
     // ── Step 3: Group setup (group users only) ───────────────────────────────────
     if (step === 3 && isGroupUser) return (
       <div className="onboard-step" key="s3">
-        <h1>{accountType === 'course_group' ? 'Join your course' : 'Set up your group'}</h1>
+        <h1>{accountType === 'course_group' ? 'Join your class' : 'Set up your group'}</h1>
         <p className="ob-sub">
           {accountType === 'course_group'
             ? 'Enter the code your instructor shared with you.'
@@ -250,7 +257,7 @@ export default function OnboardingPage() {
         {(accountType === 'course_group' || groupMode === 'join') && (
           <input className="ob-input" style={{ width: '100%', boxSizing: 'border-box', textTransform: 'uppercase' }}
                  value={joinCode} onChange={e => setJoinCode(e.target.value)}
-                 placeholder={accountType === 'course_group' ? 'Course code (e.g. BIO-2024)' : 'Group code (e.g. KW-XXXX)'}
+                 placeholder={accountType === 'course_group' ? 'Class code (e.g. BIO-2024)' : 'Group code (e.g. KW-XXXX)'}
                  autoFocus onKeyDown={e => { if (e.key === 'Enter' && canGo) next(); }}/>
         )}
 
@@ -295,6 +302,12 @@ export default function OnboardingPage() {
             <p className="ob-account-label" style={{ fontSize: 15 }}>{courseResult.name}</p>
             <p style={{ fontSize: 12, color: 'var(--ink2)', marginTop: 2 }}>{courseResult.instructor}</p>
           </div>
+        )}
+
+        {(groupResult || courseResult) && (
+          <p className="ob-sub" style={{ fontSize: 13 }}>
+            You can switch between {accountType === 'study_group' ? 'this group' : 'this class'} and studying solo anytime from the sidebar.
+          </p>
         )}
 
         <button className="ob-btn" onClick={() => finish()}>Start studying</button>
