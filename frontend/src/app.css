@@ -52,6 +52,19 @@ body.dark .sb-item.active{background:#3D2C22;color:var(--cream)}
 .sb-avatar-sm svg{width:17px;height:17px}
 .sb-profile-name{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 
+/* ---- WORKSPACE SWITCHER ---- */
+.ws-switcher{position:relative;margin:0 14px 14px}
+.ws-switcher-btn{display:flex;align-items:center;gap:8px;width:100%;padding:9px 12px;border-radius:10px;border:1.5px solid var(--line);background:var(--surface);color:var(--ink);font-size:13px;font-weight:600;cursor:pointer;transition:border-color .2s;font-family:var(--sans)}
+.ws-switcher-btn:hover{border-color:var(--marigold)}
+.ws-switcher-icon{display:grid;place-items:center;color:var(--teal);flex-shrink:0}
+.ws-switcher-label{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ws-switcher-menu{position:absolute;top:calc(100% + 6px);left:0;right:0;z-index:30;background:var(--surface);border:1.5px solid var(--line);border-radius:12px;box-shadow:0 14px 30px -14px rgba(36,23,18,.35);padding:6px;display:flex;flex-direction:column;gap:2px}
+.ws-switcher-item{display:flex;align-items:center;gap:8px;padding:9px 10px;border-radius:8px;border:none;background:none;font-size:13px;font-weight:500;color:var(--ink2);cursor:pointer;text-align:left;font-family:var(--sans)}
+.ws-switcher-item:hover{background:var(--bg2)}
+.ws-switcher-item.active{background:var(--honey);color:var(--espresso);font-weight:600}
+body.dark .ws-switcher-item.active{background:#3D2C22;color:var(--cream)}
+.ws-switcher-add{color:var(--marigold);font-weight:600;border-top:1px solid var(--line);margin-top:4px;padding-top:10px;border-radius:0 0 8px 8px}
+
 /* tab items inside sidebar for variation 1 */
 .sb-tabs{padding:0 14px 8px}
 .sb-tab{display:flex;align-items:center;gap:9px;padding:8px 12px;border-radius:9px;font-size:13px;font-weight:500;color:var(--ink2);cursor:pointer;transition:all .15s;border:none;background:none;width:100%;text-align:left}
@@ -77,6 +90,19 @@ body.dark .sb-item.active{background:#3D2C22;color:var(--cream)}
 .dash-empty{text-align:center;padding:80px 20px;color:var(--muted)}
 .dash-empty svg{width:80px;height:80px;margin-bottom:20px;opacity:.5}
 .dash-empty h3{font-size:22px;margin-bottom:8px;color:var(--ink)}
+
+/* ---- GROUP / CLASS BANNER ---- */
+.group-banner{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 18px;border:1.5px solid var(--line);border-radius:var(--radius);background:var(--surface);box-shadow:0 1px 4px -2px rgba(36,23,18,.08);margin-bottom:20px}
+.group-banner--study{border-color:color-mix(in srgb,var(--teal) 30%,var(--line))}
+.group-banner--course{border-color:color-mix(in srgb,var(--marigold) 30%,var(--line))}
+.group-banner-left{display:flex;align-items:center;gap:12px}
+.group-banner-icon{width:44px;height:44px;border-radius:12px;background:var(--bg2);display:grid;place-items:center;color:var(--teal);flex-shrink:0}
+.group-banner--course .group-banner-icon{color:var(--marigold)}
+.group-banner-name{font-family:var(--display);font-size:14px;font-weight:700;color:var(--ink);letter-spacing:-.01em;margin-bottom:2px}
+.group-banner-sub{font-size:12px;color:var(--ink2)}
+.group-banner-right{text-align:right;flex-shrink:0}
+.group-banner-label{font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:2px}
+.group-code-val{font-family:var(--display);font-size:17px;font-weight:800;color:var(--teal);letter-spacing:.02em}
 
 /* ---- TOP TABS (variation 2) ---- */
 .top-tabs{display:flex;gap:4px;padding:0 0 20px;border-bottom:1px solid var(--line);margin-bottom:24px}
@@ -249,6 +275,23 @@ body.dark .modal-btn.primary{background:var(--marigold);color:var(--espresso)}
 .ob-icon-pill svg{width:28px;height:28px}
 .ob-success{margin:24px auto;width:80px;height:80px;border-radius:50%;background:color-mix(in srgb,var(--teal) 14%,transparent);display:grid;place-items:center}
 .ob-success svg{width:40px;height:40px;color:var(--teal)}
+
+/* ---- ONBOARDING — account type cards ---- */
+.ob-account-types{display:flex;gap:12px;margin:16px 0 8px;width:100%}
+.ob-account-card{flex:1;display:flex;flex-direction:column;align-items:center;gap:10px;padding:20px 12px;background:var(--surface);border:1.5px solid var(--line);border-radius:var(--radius);cursor:pointer;transition:border-color .2s,background .2s,box-shadow .2s;font-family:var(--sans);text-align:center;box-shadow:0 1px 4px -2px rgba(36,23,18,.08)}
+.ob-account-card:hover{border-color:var(--marigold);box-shadow:0 2px 8px -4px rgba(36,23,18,.14)}
+.ob-account-card.selected{border-color:var(--marigold);background:color-mix(in srgb,var(--marigold) 7%,transparent);box-shadow:0 2px 8px -4px rgba(36,23,18,.14)}
+.ob-account-icon{width:44px;height:44px;border-radius:12px;background:var(--bg2);display:grid;place-items:center;color:var(--muted);transition:color .2s,background .2s;flex-shrink:0}
+.ob-account-card.selected .ob-account-icon{background:color-mix(in srgb,var(--marigold) 16%,transparent);color:var(--clay)}
+.ob-account-label{font-family:var(--display);font-size:14px;font-weight:700;color:var(--ink);letter-spacing:-.01em}
+.ob-account-desc{font-size:12px;color:var(--ink2);line-height:1.45}
+
+/* ---- ONBOARDING — field labels & group setup ---- */
+.ob-field-label{font-family:var(--sans);font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:10px;text-align:left;width:100%}
+.ob-group-tabs{display:flex;gap:8px;margin-bottom:20px;width:100%}
+.ob-group-tab{flex:1;padding:10px 14px;border:1.5px solid var(--line);border-radius:var(--radius);background:var(--surface);font-family:var(--display);font-size:13px;font-weight:700;color:var(--ink2);cursor:pointer;transition:border-color .2s,color .2s,background .2s}
+.ob-group-tab.active{border-color:var(--teal);color:var(--teal);background:color-mix(in srgb,var(--teal) 7%,transparent)}
+.ob-code-callout{width:100%;border:1.5px dashed var(--teal);border-radius:var(--radius);padding:16px 20px;margin:16px 0 24px;text-align:center;background:color-mix(in srgb,var(--teal) 5%,transparent)}
 
 /* ---- PROFILE ---- */
 .profile-wrap{max-width:560px}

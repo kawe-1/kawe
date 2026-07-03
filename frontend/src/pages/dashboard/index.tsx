@@ -3,12 +3,13 @@ import { useAppSelector, useAppDispatch } from '../../app/hooks';
 import { SparkIcon } from '../../components/ui/Icons';
 import { setShowCreateModal, setActiveSession, fetchSessions, createNewSession } from '../../features/sessions/sessionsSlice';
 import { useNavigate } from 'react-router-dom';
-import type { UserProfile, GroupInfo, CourseInfo } from '../../types/user';
+import type { Workspace } from '../../types/user';
+import { getSessionWorkspace } from '../../utils/workspaceSessions';
 
-// ── Group banner ─────────────────────────────────────────────────────────────
+// ── Group / class banner ──────────────────────────────────────────────────────
 
-function GroupBanner({ profile }: { profile: UserProfile }) {
-  const { accountType, group, course } = profile;
+function WorkspaceBanner({ workspace }: { workspace: Workspace }) {
+  const { type, group, course } = workspace;
   const [copied, setCopied] = React.useState(false);
 
   const copyCode = (code: string) => {
@@ -18,7 +19,7 @@ function GroupBanner({ profile }: { profile: UserProfile }) {
     });
   };
 
-  if (accountType === 'study_group' && group) {
+  if (type === 'study_group' && group) {
     return (
       <div className="group-banner group-banner--study">
         <div className="group-banner-left">
@@ -49,7 +50,7 @@ function GroupBanner({ profile }: { profile: UserProfile }) {
     );
   }
 
-  if (accountType === 'course_group' && course) {
+  if (type === 'course_group' && course) {
     return (
       <div className="group-banner group-banner--course">
         <div className="group-banner-left">
@@ -65,7 +66,7 @@ function GroupBanner({ profile }: { profile: UserProfile }) {
           </div>
         </div>
         <div className="group-banner-right">
-          <p className="group-banner-label">COURSE CODE</p>
+          <p className="group-banner-label">CLASS CODE</p>
           <p className="group-code-val" style={{ color: 'var(--marigold)' }}>{course.code}</p>
         </div>
       </div>
@@ -89,41 +90,52 @@ export default function DashboardPage() {
     }
   }, [status, dispatch]);
 
+  const activeWorkspaceId = profile?.activeWorkspaceId || 'individual';
+  const activeWorkspace = (profile?.workspaces || []).find(w => w.id === activeWorkspaceId);
+  const visibleSessions = sessions.filter(s => getSessionWorkspace(s.id) === activeWorkspaceId);
+
   const handleSelectSession = (s: any) => {
     dispatch(setActiveSession(s.id));
     navigate(`/session/${s.id}`);
   };
 
-  const handleCreate = (title: string) => {
-    dispatch(createNewSession(title));
-    dispatch(setShowCreateModal(false));
+  const handleNewSession = () => {
+    dispatch(setShowCreateModal(true));
   };
 
   return (
     <div className="main-pad">
       <div className="dash-welcome">
         <h1>Welcome back{profile?.name ? `, ${profile.name}` : ''}</h1>
-        <p>Pick a session to continue, or start a new one.</p>
+        <p>
+          {activeWorkspace && activeWorkspace.id !== 'individual'
+            ? `Pick up where you left off in ${activeWorkspace.label}, or start a new session.`
+            : 'Pick a session to continue, or start a new one.'}
+        </p>
       </div>
 
-      {profile && <GroupBanner profile={profile}/>}
+      {activeWorkspace && <WorkspaceBanner workspace={activeWorkspace}/>}
 
-      {sessions.length === 0 ? (
+      {visibleSessions.length === 0 ? (
         <div className="dash-empty">
           <SparkIcon size={80} style={{ opacity: 0.4 }}/>
           <h3>No sessions yet</h3>
-          <p>Create your first topic session to get started.</p>
-          <button className="q-btn q-btn-primary" style={{ marginTop: 16 }} onClick={() => dispatch(setShowCreateModal(true))}>Create session</button>
+          <p>
+            {activeWorkspace && activeWorkspace.id !== 'individual'
+              ? `Create your first topic session in ${activeWorkspace.label}.`
+              : 'Create your first topic session to get started.'}
+          </p>
+          <button className="q-btn q-btn-primary" style={{ marginTop: 16 }} onClick={handleNewSession}>Create session</button>
         </div>
       ) : (
         <div className="dash-grid">
-          {sessions.map(s => (
+          {visibleSessions.map(s => (
             <div key={s.id} className="dash-card" onClick={() => handleSelectSession(s)}>
               <div style={{ width: 32, height: 4, borderRadius: 2, background: '#F4A12B', marginBottom: 14 }}></div>
               <h3>{s.title}</h3>
             </div>
           ))}
-          <div className="dash-card" onClick={() => dispatch(setShowCreateModal(true))}
+          <div className="dash-card" onClick={handleNewSession}
                style={{ display: 'grid', placeItems: 'center', borderStyle: 'dashed', minHeight: 180 }}>
             <div style={{ textAlign: 'center', color: 'var(--muted)' }}>
               <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" style={{ marginBottom: 8 }}>
