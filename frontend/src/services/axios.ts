@@ -84,6 +84,29 @@ if (import.meta.env.VITE_USE_MOCK === "true") {
       return response({ answer: "This is a mocked response from the AI." });
     }
 
+    if (method === "post" && path === "/api/groups") {
+      const groups = await import("./mocks/groups");
+      const payload = JSON.parse(configData || "{}");
+      return response(groups.createDemoGroup(payload.name || "Study Group"));
+    }
+    if (method === "post" && path === "/api/groups/join") {
+      const groups = await import("./mocks/groups");
+      const payload = JSON.parse(configData || "{}");
+      const group = groups.joinDemoGroup((payload.code || "").toUpperCase());
+      if (!group) return Promise.reject(new ApiError("No group found with that code.", 404));
+      return response(group);
+    }
+    if (method === "post" && path === "/api/courses/join") {
+      const groups = await import("./mocks/groups");
+      const payload = JSON.parse(configData || "{}");
+      const course = groups.DEMO_COURSES[(payload.code || "").toUpperCase()];
+      if (!course) return Promise.reject(new ApiError("No course found with that code.", 404));
+      return response(course);
+    }
+    if (method === "put" && path === "/api/users/me") {
+      return response({ ok: true });
+    }
+
     // Default 404 for unmapped endpoints
     return Promise.reject(new ApiError(`Mock unhandled: ${method?.toUpperCase()} ${path}`, 404));
   };

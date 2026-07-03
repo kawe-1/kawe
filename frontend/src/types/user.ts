@@ -1,4 +1,5 @@
 export type AccountType = 'individual' | 'study_group' | 'course_group';
+export type AcademicLevel = 'o_level' | 'undergraduate' | 'postgraduate';
 
 export interface GroupInfo {
   id: string;
@@ -16,6 +17,15 @@ export interface CourseInfo {
   memberCount: number;
 }
 
+/** A study context the user can switch between — their solo space, or a joined group/course. */
+export interface Workspace {
+  id: string; // 'individual' | group.id | course.id
+  type: AccountType;
+  label: string;
+  group?: GroupInfo | null;
+  course?: CourseInfo | null;
+}
+
 export interface UserProfile {
   name: string;
   bio: string;
@@ -24,10 +34,13 @@ export interface UserProfile {
   style?: string;
   accountType?: AccountType;
   subjectArea?: string[];
-  academicLevel?: string;
+  academicLevel?: AcademicLevel | string;
+  academicField?: string;
   institution?: string;
   group?: GroupInfo | null;
   course?: CourseInfo | null;
+  workspaces: Workspace[];
+  activeWorkspaceId: string;
 }
 
 export type AuthStateStatus = 'landing' | 'signin' | 'onboarding' | 'app';
