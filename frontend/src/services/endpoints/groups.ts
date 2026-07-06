@@ -35,7 +35,7 @@ export async function updateUserProfile(payload: {
   institution?: string;
   group_id?: string | null;
   course_id?: string | null;
-  has_onboarded: boolean;
+  has_onboarded?: boolean;
 }): Promise<void> {
   await api.put('/api/users/me', payload);
 }
