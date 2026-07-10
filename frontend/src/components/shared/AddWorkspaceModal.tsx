@@ -1,8 +1,7 @@
 import React, { useState } from 'react';
 import { useAppDispatch } from '../../app/hooks';
-import { addWorkspace } from '../../features/auth/authSlice';
-import { createGroup, joinGroup, joinCourse } from '../../services/endpoints/groups';
-import type { Workspace } from '../../types/user';
+import { setActiveWorkspace, updateProfile } from '../../features/auth/authSlice';
+import { createGroup, joinGroup, joinCourse, updateUserProfile } from '../../services/endpoints/groups';
 
 type Tab = 'create_group' | 'join_group' | 'join_course';
 
@@ -24,18 +23,16 @@ export function AddWorkspaceModal({ onClose }: AddWorkspaceModalProps) {
     setError(null);
     setLoading(true);
     try {
-      let workspace: Workspace;
       if (tab === 'create_group') {
-        const group = await createGroup(groupName.trim());
-        workspace = { id: group.id, type: 'study_group', label: group.name, group: { ...group, role: 'admin' } };
+        const group = await createGroup(groupName.trim())
+        dispatch(setActiveWorkspace(group.id));
       } else if (tab === 'join_group') {
-        const group = await joinGroup(code.trim().toUpperCase());
-        workspace = { id: group.id, type: 'study_group', label: group.name, group: { ...group, role: 'member' } };
+        const group = await joinGroup(code.trim().toUpperCase())
+        dispatch(setActiveWorkspace(group.id));
       } else {
         const course = await joinCourse(code.trim().toUpperCase());
-        workspace = { id: course.id, type: 'course_group', label: course.name, course };
+        dispatch(setActiveWorkspace(course.id));
       }
-      dispatch(addWorkspace(workspace));
       onClose();
     } catch (e: any) {
       setError(e?.message || 'Something went wrong. Check the code and try again.');
@@ -52,15 +49,15 @@ export function AddWorkspaceModal({ onClose }: AddWorkspaceModalProps) {
 
         <div className="ob-group-tabs" style={{ marginTop: 16 }}>
           <button className={`ob-group-tab${tab === 'create_group' ? ' active' : ''}`}
-                  onClick={() => { setTab('create_group'); setError(null); }}>
+            onClick={() => { setTab('create_group'); setError(null); }}>
             Create group
           </button>
           <button className={`ob-group-tab${tab === 'join_group' ? ' active' : ''}`}
-                  onClick={() => { setTab('join_group'); setError(null); }}>
+            onClick={() => { setTab('join_group'); setError(null); }}>
             Join group
           </button>
           <button className={`ob-group-tab${tab === 'join_course' ? ' active' : ''}`}
-                  onClick={() => { setTab('join_course'); setError(null); }}>
+            onClick={() => { setTab('join_course'); setError(null); }}>
             Join class
           </button>
         </div>
@@ -69,13 +66,13 @@ export function AddWorkspaceModal({ onClose }: AddWorkspaceModalProps) {
           <label>{tab === 'create_group' ? 'Group name' : tab === 'join_group' ? 'Group code' : 'Class code'}</label>
           {tab === 'create_group' ? (
             <input value={groupName} onChange={e => setGroupName(e.target.value)}
-                   placeholder="e.g. Biology Study Squad" autoFocus
-                   onKeyDown={e => e.key === 'Enter' && canSubmit && handleSubmit()}/>
+              placeholder="e.g. Biology Study Squad" autoFocus
+              onKeyDown={e => e.key === 'Enter' && canSubmit && handleSubmit()} />
           ) : (
             <input value={code} onChange={e => setCode(e.target.value)}
-                   placeholder={tab === 'join_group' ? 'e.g. KW-XXXX' : 'e.g. BIO-2024'} autoFocus
-                   style={{ textTransform: 'uppercase' }}
-                   onKeyDown={e => e.key === 'Enter' && canSubmit && handleSubmit()}/>
+              placeholder={tab === 'join_group' ? 'e.g. KW-XXXX' : 'e.g. BIO-2024'} autoFocus
+              style={{ textTransform: 'uppercase' }}
+              onKeyDown={e => e.key === 'Enter' && canSubmit && handleSubmit()} />
           )}
         </div>
 

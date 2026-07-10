@@ -2,6 +2,7 @@ import React, { useEffect } from 'react';
 import { useAppSelector, useAppDispatch } from '../../app/hooks';
 import { useParams, useNavigate } from 'react-router-dom';
 import { setActiveSession, setActiveTab, fetchSessionDetail, fetchSessions } from '../../features/sessions/sessionsSlice';
+import { getActiveWorkspaceId, getProfileWorkspaces } from '../../types/user';
 import { SessionHeader } from '../../components/shared/SessionHeader';
 import { LoadingSpinner } from '../../components/shared/LoadingSpinner';
 import { NotesView } from '../../features/notes/components/NotesView';
@@ -18,6 +19,11 @@ export default function SessionPage() {
 
   const { activeSessionId, activeSessionDetail, detailStatus, activeTab, sessions } = useAppSelector(state => state.sessions);
   const { layout } = useAppSelector(state => state.ui);
+  const { profile } = useAppSelector(state => state.auth);
+
+  const workspaces = getProfileWorkspaces(profile);
+  const activeWorkspaceId = getActiveWorkspaceId(profile);
+  const activeWorkspace = workspaces.find(w => w.id === activeWorkspaceId);
 
   useEffect(() => {
     if (id) {
@@ -25,9 +31,9 @@ export default function SessionPage() {
       dispatch(fetchSessionDetail(id));
     }
     if (id && sessions.length === 0) {
-      dispatch(fetchSessions());
+      dispatch(fetchSessions({ workspaceId: activeWorkspace?.id, workspaceType: activeWorkspace?.type }));
     }
-  }, [id, dispatch]);
+  }, [id, dispatch, sessions.length, activeWorkspace?.id, activeWorkspace?.type]);
 
   if (detailStatus === 'loading' || !activeSessionDetail) {
     return (
@@ -55,7 +61,7 @@ export default function SessionPage() {
             {activeTab === 'notes' && <NotesView session={session} />}
             {activeTab === 'quiz' && <QuizView session={session} />}
             {activeTab === 'flashcards' && <FlashcardsView session={session} />}
-            {activeTab === 'sources' && <SourcesView session={session} onUpload={() => { dispatch(fetchSessionDetail(session.id)); dispatch(fetchSessions()); }} />}
+            {activeTab === 'sources' && <SourcesView session={session} onUpload={() => { dispatch(fetchSessionDetail(session.id)); dispatch(fetchSessions({ workspaceId: activeWorkspace?.id, workspaceType: activeWorkspace?.type })); }} />}
           </div>
           <div className="split-right">
             <div style={{ fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.1em', color: 'var(--muted)', marginBottom: 14 }}>Ask Kawe</div>
@@ -80,7 +86,7 @@ export default function SessionPage() {
         {activeTab === 'quiz' && <QuizView session={session} />}
         {activeTab === 'flashcards' && <FlashcardsView session={session} />}
         {activeTab === 'chat' && <ChatView session={session} />}
-        {activeTab === 'sources' && <SourcesView session={session} onUpload={() => { dispatch(fetchSessionDetail(session.id)); dispatch(fetchSessions()); }} />}
+        {activeTab === 'sources' && <SourcesView session={session} onUpload={() => { dispatch(fetchSessionDetail(session.id)); dispatch(fetchSessions({ workspaceId: activeWorkspace?.id, workspaceType: activeWorkspace?.type })); }} />}
       </div>
     );
   }
@@ -92,7 +98,7 @@ export default function SessionPage() {
       {activeTab === 'quiz' && <QuizView session={session} />}
       {activeTab === 'flashcards' && <FlashcardsView session={session} />}
       {activeTab === 'chat' && <ChatView session={session} />}
-      {activeTab === 'sources' && <SourcesView session={session} onUpload={() => { dispatch(fetchSessionDetail(session.id)); dispatch(fetchSessions()); }} />}
+      {activeTab === 'sources' && <SourcesView session={session} onUpload={() => { dispatch(fetchSessionDetail(session.id)); dispatch(fetchSessions({ workspaceId: activeWorkspace?.id, workspaceType: activeWorkspace?.type })); }} />}
     </div>
   );
 }

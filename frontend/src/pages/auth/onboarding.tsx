@@ -1,65 +1,67 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../../app/hooks';
-import { setAuthStatus, updateProfile, addWorkspace } from '../../features/auth/authSlice';
+import { setAuthStatus, updateProfile, setActiveWorkspace } from '../../features/auth/authSlice';
 import { SparkIcon } from '../../components/ui/Icons';
 import { createGroup, joinGroup, joinCourse, updateUserProfile } from '../../services/endpoints/groups';
 import { ACADEMIC_LEVELS, ACADEMIC_FIELDS } from '../../constants/academics';
-import type { AccountType, AcademicLevel, GroupInfo, CourseInfo, Workspace } from '../../types/user';
+import type { AcademicLevel, GroupInfo, CourseInfo } from '../../types/user';
 
-const ACCOUNT_TYPES: { id: AccountType; label: string; desc: string }[] = [
-  { id: 'individual',   label: 'Individual',   desc: 'Study solo at your own pace' },
-  { id: 'study_group',  label: 'Study Group',  desc: 'Collaborate with peers on shared sessions' },
+const WORKSPACE_CHOICES = [
+  { id: 'individual', label: 'Individual', desc: 'Study solo at your own pace' },
+  { id: 'study_group', label: 'Study Group', desc: 'Collaborate with peers on shared sessions' },
   { id: 'course_group', label: 'Course Group', desc: 'Join a structured course with a code' },
-];
+] as const;
 
-function AccountIcon({ type }: { type: AccountType }) {
+type WorkspaceChoice = (typeof WORKSPACE_CHOICES)[number];
+
+function WorkspaceIcon({ type }: { type: WorkspaceChoice['id'] }) {
   if (type === 'individual') return (
     <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-      <circle cx="12" cy="8" r="4"/>
-      <path d="M4 20c0-3.8 3.6-7 8-7s8 3.2 8 7"/>
+      <circle cx="12" cy="8" r="4" />
+      <path d="M4 20c0-3.8 3.6-7 8-7s8 3.2 8 7" />
     </svg>
   );
   if (type === 'study_group') return (
     <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-      <circle cx="8" cy="7" r="3"/>
-      <path d="M2 20c0-3 2.7-5.5 6-5.5"/>
-      <circle cx="16" cy="7" r="3"/>
-      <path d="M22 20c0-3-2.7-5.5-6-5.5"/>
-      <path d="M12 15c3.3 0 6 2.5 6 5.5H6c0-3 2.7-5.5 6-5.5z"/>
+      <circle cx="8" cy="7" r="3" />
+      <path d="M2 20c0-3 2.7-5.5 6-5.5" />
+      <circle cx="16" cy="7" r="3" />
+      <path d="M22 20c0-3-2.7-5.5-6-5.5" />
+      <path d="M12 15c3.3 0 6 2.5 6 5.5H6c0-3 2.7-5.5 6-5.5z" />
     </svg>
   );
   return (
     <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-      <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
-      <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
-      <path d="M9 7h6M9 11h6M9 15h4"/>
+      <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
+      <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
+      <path d="M9 7h6M9 11h6M9 15h4" />
     </svg>
   );
 }
 
 export default function OnboardingPage() {
-  const dispatch  = useAppDispatch();
-  const navigate  = useNavigate();
+  const dispatch = useAppDispatch();
+  const navigate = useNavigate();
   const { profile } = useAppSelector(state => state.auth);
-  const userName  = profile?.name || '';
+  const userName = profile?.name || '';
 
-  const [step,        setStep]        = useState(0);
-  const [dName,       setDName]       = useState(userName);
-  const [accountType, setAccountType] = useState<AccountType>('individual');
-  const [level,       setLevel]       = useState<AcademicLevel | ''>('');
-  const [field,       setField]       = useState('');
+  const [step, setStep] = useState(0);
+  const [dName, setDName] = useState(userName);
+  const [workspaceType, setWorkspaceType] = useState<WorkspaceChoice['id']>('individual');
+  const [level, setLevel] = useState<AcademicLevel | ''>('');
+  const [field, setField] = useState('');
   const [institution, setInstitution] = useState('');
-  const [groupMode,   setGroupMode]   = useState<'create' | 'join'>('create');
-  const [groupName,   setGroupName]   = useState('');
-  const [joinCode,    setJoinCode]    = useState('');
+  const [groupMode, setGroupMode] = useState<'create' | 'join'>('create');
+  const [groupName, setGroupName] = useState('');
+  const [joinCode, setJoinCode] = useState('');
   const [groupResult, setGroupResult] = useState<GroupInfo | null>(null);
-  const [courseResult,setCourseResult]= useState<CourseInfo | null>(null);
-  const [groupError,  setGroupError]  = useState<string | null>(null);
-  const [groupLoading,setGroupLoading]= useState(false);
+  const [courseResult, setCourseResult] = useState<CourseInfo | null>(null);
+  const [groupError, setGroupError] = useState<string | null>(null);
+  const [groupLoading, setGroupLoading] = useState(false);
 
-  const isGroupUser = accountType === 'study_group' || accountType === 'course_group';
-  const totalDots   = isGroupUser ? 5 : 4;
+  const isGroupUser = workspaceType === 'study_group' || workspaceType === 'course_group';
+  const totalDots = isGroupUser ? 5 : 4;
 
   // Map internal step → visual dot index (step 3 only exists for group users)
   const dotIndex = (s: number) => {
@@ -74,27 +76,19 @@ export default function OnboardingPage() {
     if (step === 1) return true;
     if (step === 2) return level !== '' && field !== '';
     if (step === 3) {
-      if (accountType === 'course_group') return joinCode.trim().length > 0;
+      if (workspaceType === 'course_group') return joinCode.trim().length > 0;
       return groupMode === 'create' ? groupName.trim().length > 0 : joinCode.trim().length > 0;
     }
     return true;
   })();
 
   const finish = (overrides?: { group?: GroupInfo | null; course?: CourseInfo | null }) => {
-    const finalGroup  = overrides?.group ?? groupResult;
+    const finalGroup = overrides?.group ?? groupResult;
     const finalCourse = overrides?.course ?? courseResult;
-
-    const workspace: Workspace | null =
-      accountType === 'study_group' && finalGroup
-        ? { id: finalGroup.id, type: 'study_group', label: finalGroup.name, group: finalGroup }
-      : accountType === 'course_group' && finalCourse
-        ? { id: finalCourse.id, type: 'course_group', label: finalCourse.name, course: finalCourse }
-      : null;
 
     const finalProfile = {
       ...profile,
       name: dName.trim() || userName,
-      accountType,
       academicLevel: level,
       academicField: field,
       institution,
@@ -102,18 +96,18 @@ export default function OnboardingPage() {
       course: finalCourse,
     };
     dispatch(updateProfile(finalProfile));
-    if (workspace) dispatch(addWorkspace(workspace));
+    if (finalGroup) dispatch(setActiveWorkspace(finalGroup.id));
+    if (finalCourse) dispatch(setActiveWorkspace(finalCourse.id));
     dispatch(setAuthStatus('app'));
 
     updateUserProfile({
       name: finalProfile.name,
-      account_type: accountType,
       academic_level: level,
       institution,
       group_id: finalGroup?.id ?? null,
       course_id: finalCourse?.id ?? null,
       has_onboarded: true,
-    }).catch(() => {});
+    }).catch(() => { });
 
     navigate('/dashboard');
   };
@@ -122,7 +116,7 @@ export default function OnboardingPage() {
     setGroupError(null);
     setGroupLoading(true);
     try {
-      if (accountType === 'course_group') {
+      if (workspaceType === 'course_group') {
         const course = await joinCourse(joinCode.trim().toUpperCase());
         setCourseResult(course);
         setStep(s => s + 1);
@@ -154,28 +148,28 @@ export default function OnboardingPage() {
     // ── Step 0: Name ────────────────────────────────────────────────────────────
     if (step === 0) return (
       <div className="onboard-step" key="s0">
-        <div className="auth-spark" style={{ marginBottom: 20 }}><SparkIcon size={52}/></div>
+        <div className="auth-spark" style={{ marginBottom: 20 }}><SparkIcon size={52} /></div>
         <h1>Welcome to Kawe{dName ? `, ${dName}` : ''}!</h1>
         <p className="ob-sub">Let's personalise your study companion. What should we call you?</p>
         <input className="ob-input" value={dName} onChange={e => setDName(e.target.value)}
-               placeholder="Your name" autoFocus onKeyDown={e => { if (e.key === 'Enter' && canGo) next(); }}/>
+          placeholder="Your name" autoFocus onKeyDown={e => { if (e.key === 'Enter' && canGo) next(); }} />
         <button className="ob-btn" disabled={!canGo} onClick={next}>Continue</button>
       </div>
     );
 
-    // ── Step 1: Account type ─────────────────────────────────────────────────────
+    // ── Step 1: Workspace choice ──────────────────────────────────────────────────
     if (step === 1) return (
       <div className="onboard-step" key="s1">
         <h1>How are you studying?</h1>
         <p className="ob-sub">Choose the setup that fits how you learn. You can add more later from the sidebar.</p>
         <div className="ob-account-types">
-          {ACCOUNT_TYPES.map(({ id, label, desc }) => (
+          {WORKSPACE_CHOICES.map(({ id, label, desc }) => (
             <button
               key={id}
-              className={`ob-account-card${accountType === id ? ' selected' : ''}`}
-              onClick={() => setAccountType(id)}
+              className={`ob-account-card${workspaceType === id ? ' selected' : ''}`}
+              onClick={() => setWorkspaceType(id)}
             >
-              <div className="ob-account-icon"><AccountIcon type={id}/></div>
+              <div className="ob-account-icon"><WorkspaceIcon type={id} /></div>
               <span className="ob-account-label">{label}</span>
               <span className="ob-account-desc">{desc}</span>
             </button>
@@ -195,7 +189,7 @@ export default function OnboardingPage() {
         <div className="ob-chips" style={{ marginBottom: 20 }}>
           {ACADEMIC_LEVELS.map(l => (
             <button key={l.id} className={`ob-chip${level === l.id ? ' selected' : ''}`}
-                    onClick={() => { setLevel(l.id); setField(''); }}>
+              onClick={() => { setLevel(l.id); setField(''); }}>
               {l.label}
             </button>
           ))}
@@ -207,7 +201,7 @@ export default function OnboardingPage() {
             <div className="ob-chips" style={{ marginBottom: 20 }}>
               {ACADEMIC_FIELDS[level].map(f => (
                 <button key={f} className={`ob-chip${field === f ? ' selected' : ''}`}
-                        onClick={() => setField(f)}>
+                  onClick={() => setField(f)}>
                   {f}
                 </button>
               ))}
@@ -217,8 +211,8 @@ export default function OnboardingPage() {
 
         <p className="ob-field-label">Institution <span style={{ fontWeight: 400, textTransform: 'none', letterSpacing: 0, color: 'var(--muted)', fontSize: 11 }}>(optional)</span></p>
         <input className="ob-input" style={{ width: '100%', boxSizing: 'border-box' }}
-               value={institution} onChange={e => setInstitution(e.target.value)}
-               placeholder="e.g. University of Lagos"/>
+          value={institution} onChange={e => setInstitution(e.target.value)}
+          placeholder="e.g. University of Lagos" />
 
         <button className="ob-btn" disabled={!canGo} onClick={next}>Continue</button>
       </div>
@@ -227,38 +221,38 @@ export default function OnboardingPage() {
     // ── Step 3: Group setup (group users only) ───────────────────────────────────
     if (step === 3 && isGroupUser) return (
       <div className="onboard-step" key="s3">
-        <h1>{accountType === 'course_group' ? 'Join your class' : 'Set up your group'}</h1>
+        <h1>{workspaceType === 'course_group' ? 'Join your class' : 'Set up your group'}</h1>
         <p className="ob-sub">
-          {accountType === 'course_group'
+          {workspaceType === 'course_group'
             ? 'Enter the code your instructor shared with you.'
             : 'Create a new group or join one with a code.'}
         </p>
 
-        {accountType === 'study_group' && (
+        {workspaceType === 'study_group' && (
           <div className="ob-group-tabs">
             <button className={`ob-group-tab${groupMode === 'create' ? ' active' : ''}`}
-                    onClick={() => { setGroupMode('create'); setJoinCode(''); setGroupError(null); }}>
+              onClick={() => { setGroupMode('create'); setJoinCode(''); setGroupError(null); }}>
               Create a group
             </button>
             <button className={`ob-group-tab${groupMode === 'join' ? ' active' : ''}`}
-                    onClick={() => { setGroupMode('join'); setGroupName(''); setGroupError(null); }}>
+              onClick={() => { setGroupMode('join'); setGroupName(''); setGroupError(null); }}>
               Join with a code
             </button>
           </div>
         )}
 
-        {accountType === 'study_group' && groupMode === 'create' && (
+        {workspaceType === 'study_group' && groupMode === 'create' && (
           <input className="ob-input" style={{ width: '100%', boxSizing: 'border-box' }}
-                 value={groupName} onChange={e => setGroupName(e.target.value)}
-                 placeholder="Group name (e.g. Biology Study Squad)" autoFocus
-                 onKeyDown={e => { if (e.key === 'Enter' && canGo) next(); }}/>
+            value={groupName} onChange={e => setGroupName(e.target.value)}
+            placeholder="Group name (e.g. Biology Study Squad)" autoFocus
+            onKeyDown={e => { if (e.key === 'Enter' && canGo) next(); }} />
         )}
 
-        {(accountType === 'course_group' || groupMode === 'join') && (
+        {(workspaceType === 'course_group' || groupMode === 'join') && (
           <input className="ob-input" style={{ width: '100%', boxSizing: 'border-box', textTransform: 'uppercase' }}
-                 value={joinCode} onChange={e => setJoinCode(e.target.value)}
-                 placeholder={accountType === 'course_group' ? 'Class code (e.g. BIO-2024)' : 'Group code (e.g. KW-XXXX)'}
-                 autoFocus onKeyDown={e => { if (e.key === 'Enter' && canGo) next(); }}/>
+            value={joinCode} onChange={e => setJoinCode(e.target.value)}
+            placeholder={workspaceType === 'course_group' ? 'Class code (e.g. BIO-2024)' : 'Group code (e.g. KW-XXXX)'}
+            autoFocus onKeyDown={e => { if (e.key === 'Enter' && canGo) next(); }} />
         )}
 
         {groupError && (
@@ -268,7 +262,7 @@ export default function OnboardingPage() {
         )}
 
         <button className="ob-btn" disabled={!canGo || groupLoading} onClick={next}>
-          {groupLoading ? 'Please wait…' : accountType === 'study_group' && groupMode === 'create' ? 'Create group' : 'Join'}
+          {groupLoading ? 'Please wait…' : workspaceType === 'study_group' && groupMode === 'create' ? 'Create group' : 'Join'}
         </button>
       </div>
     );
@@ -278,7 +272,7 @@ export default function OnboardingPage() {
       <div className="onboard-step" key="s-done">
         <div className="ob-success">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-            <path d="M20 6L9 17l-5-5"/>
+            <path d="M20 6L9 17l-5-5" />
           </svg>
         </div>
         <h1>You're all set, {dName || 'friend'}!</h1>
@@ -306,7 +300,7 @@ export default function OnboardingPage() {
 
         {(groupResult || courseResult) && (
           <p className="ob-sub" style={{ fontSize: 13 }}>
-            You can switch between {accountType === 'study_group' ? 'this group' : 'this class'} and studying solo anytime from the sidebar.
+            You can switch between {workspaceType === 'study_group' ? 'this group' : 'this class'} and studying solo anytime from the sidebar.
           </p>
         )}
 
@@ -321,7 +315,7 @@ export default function OnboardingPage() {
         <div className="onboard-dots">
           {Array.from({ length: totalDots }, (_, i) => {
             const di = dotIndex(step);
-            return <div key={i} className={`onboard-dot${i === di ? ' active' : i < di ? ' done' : ''}`}/>;
+            return <div key={i} className={`onboard-dot${i === di ? ' active' : i < di ? ' done' : ''}`} />;
           })}
         </div>
         {step < LAST_STEP && <button className="onboard-skip" onClick={() => finish()}>Skip</button>}

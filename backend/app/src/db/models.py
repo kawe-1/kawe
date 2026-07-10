@@ -35,9 +35,6 @@ class User(Base):
     has_onboarded: Mapped[bool] = mapped_column(
         Boolean, nullable=False, default=False, server_default="false"
     )
-    account_type: Mapped[str] = mapped_column(
-        String, nullable=False, default="individual", server_default="individual"
-    )
     academic_level: Mapped[str | None] = mapped_column(String, nullable=True)
     institution: Mapped[str | None] = mapped_column(String, nullable=True)
     subject_area: Mapped[list[str]] = mapped_column(
@@ -61,6 +58,12 @@ class StudySession(Base):
     user_id: Mapped[str | None] = mapped_column(
         String, ForeignKey("users.id", ondelete="CASCADE"), nullable=True
     )
+    group_id: Mapped[str | None] = mapped_column(
+        String, ForeignKey("groups.id", ondelete="CASCADE"), nullable=True
+    )
+    course_id: Mapped[str | None] = mapped_column(
+        String, ForeignKey("courses.id", ondelete="CASCADE"), nullable=True
+    )
     title: Mapped[str] = mapped_column(String, nullable=False)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), default=_now
@@ -68,6 +71,8 @@ class StudySession(Base):
 
     # relationships
     user: Mapped["User | None"] = relationship("User", back_populates="sessions")
+    group: Mapped["Group | None"] = relationship("Group")
+    course: Mapped["Course | None"] = relationship("Course")
     sources: Mapped[list["Source"]] = relationship(
         "Source", back_populates="session", cascade="all, delete-orphan"
     )

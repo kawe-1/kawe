@@ -6,7 +6,7 @@ import { setActiveWorkspace } from '../../features/auth/authSlice';
 import { SparkIcon, TabIcon, TAB_LABELS } from './Icons';
 import { useNavigate } from 'react-router-dom';
 import { ProfileView, SettingsView } from './ProfileAndSettings';
-
+import { getActiveWorkspaceId, getProfileWorkspaces, type Workspace } from '../../types/user';
 type SidePanel = 'profile' | 'settings' | null;
 
 // ── Full-screen overlay panel ─────────────────────────────────────────────────
@@ -107,7 +107,6 @@ function FullPanel({
 }
 
 // ── Sidebar ───────────────────────────────────────────────────────────────────
-import { getSessionWorkspace } from '../../utils/workspaceSessions';
 
 function WorkspaceIcon({ type }: { type: string }) {
   if (type === 'study_group') return (
@@ -132,8 +131,8 @@ function WorkspaceSwitcher() {
   const { profile } = useAppSelector(state => state.auth);
   const [open, setOpen] = useState(false);
 
-  const workspaces = profile?.workspaces || [];
-  const activeId = profile?.activeWorkspaceId || 'individual';
+  const workspaces = getProfileWorkspaces(profile);
+  const activeId = getActiveWorkspaceId(profile);
   const active = workspaces.find(w => w.id === activeId) || workspaces[0];
 
   const handleSelect = (id: string) => {
@@ -189,9 +188,7 @@ export function Sidebar() {
     : undefined);
   const showTabs = layout === 'sidebar' && activeSession;
 
-  // Scope the session list to whichever workspace is active, same as the dashboard.
-  const activeWorkspaceId = profile?.activeWorkspaceId || 'individual';
-  const visibleSessions = sessions.filter(s => getSessionWorkspace(s.id) === activeWorkspaceId);
+  const visibleSessions = sessions;
 
   const onGoHome = () => {
     dispatch(setActiveSession(null));

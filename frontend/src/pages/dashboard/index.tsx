@@ -1,10 +1,9 @@
 import React, { useEffect } from 'react';
 import { useAppSelector, useAppDispatch } from '../../app/hooks';
 import { SparkIcon } from '../../components/ui/Icons';
-import { setShowCreateModal, setActiveSession, fetchSessions, createNewSession } from '../../features/sessions/sessionsSlice';
+import { setShowCreateModal, setActiveSession, fetchSessions } from '../../features/sessions/sessionsSlice';
 import { useNavigate } from 'react-router-dom';
-import type { Workspace } from '../../types/user';
-import { getSessionWorkspace } from '../../utils/workspaceSessions';
+import { getActiveWorkspaceId, getProfileWorkspaces, type Workspace } from '../../types/user';
 
 // ── Group / class banner ──────────────────────────────────────────────────────
 
@@ -25,11 +24,11 @@ function WorkspaceBanner({ workspace }: { workspace: Workspace }) {
         <div className="group-banner-left">
           <div className="group-banner-icon">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-              <circle cx="8" cy="7" r="3"/>
-              <path d="M2 20c0-3 2.7-5.5 6-5.5"/>
-              <circle cx="16" cy="7" r="3"/>
-              <path d="M22 20c0-3-2.7-5.5-6-5.5"/>
-              <path d="M12 15c3.3 0 6 2.5 6 5.5H6c0-3 2.7-5.5 6-5.5z"/>
+              <circle cx="8" cy="7" r="3" />
+              <path d="M2 20c0-3 2.7-5.5 6-5.5" />
+              <circle cx="16" cy="7" r="3" />
+              <path d="M22 20c0-3-2.7-5.5-6-5.5" />
+              <path d="M12 15c3.3 0 6 2.5 6 5.5H6c0-3 2.7-5.5 6-5.5z" />
             </svg>
           </div>
           <div>
@@ -42,7 +41,7 @@ function WorkspaceBanner({ workspace }: { workspace: Workspace }) {
         <div className="group-banner-right">
           <p className="group-banner-label">SHARE CODE</p>
           <button className="group-code-val" onClick={() => copyCode(group.code)}
-                  title="Click to copy" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
+            title="Click to copy" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
             {copied ? 'Copied!' : group.code}
           </button>
         </div>
@@ -56,8 +55,8 @@ function WorkspaceBanner({ workspace }: { workspace: Workspace }) {
         <div className="group-banner-left">
           <div className="group-banner-icon">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-              <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
-              <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
+              <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
+              <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
             </svg>
           </div>
           <div>
@@ -84,15 +83,16 @@ export default function DashboardPage() {
   const { sessions, status } = useAppSelector(state => state.sessions);
   const { profile } = useAppSelector(state => state.auth);
 
+  const workspaces = getProfileWorkspaces(profile);
+  const activeWorkspaceId = getActiveWorkspaceId(profile);
+  const activeWorkspace = workspaces.find(w => w.id === activeWorkspaceId);
+
   useEffect(() => {
     if (status === 'idle') {
-      dispatch(fetchSessions());
+      dispatch(fetchSessions({ workspaceId: activeWorkspace?.id, workspaceType: activeWorkspace?.type }));
     }
-  }, [status, dispatch]);
-
-  const activeWorkspaceId = profile?.activeWorkspaceId || 'individual';
-  const activeWorkspace = (profile?.workspaces || []).find(w => w.id === activeWorkspaceId);
-  const visibleSessions = sessions.filter(s => getSessionWorkspace(s.id) === activeWorkspaceId);
+  }, [status, dispatch, activeWorkspace?.id, activeWorkspace?.type]);
+  const visibleSessions = sessions;
 
   const handleSelectSession = (s: any) => {
     dispatch(setActiveSession(s.id));
@@ -114,11 +114,11 @@ export default function DashboardPage() {
         </p>
       </div>
 
-      {activeWorkspace && <WorkspaceBanner workspace={activeWorkspace}/>}
+      {activeWorkspace && <WorkspaceBanner workspace={activeWorkspace} />}
 
       {visibleSessions.length === 0 ? (
         <div className="dash-empty">
-          <SparkIcon size={80} style={{ opacity: 0.4 }}/>
+          <SparkIcon size={80} style={{ opacity: 0.4 }} />
           <h3>No sessions yet</h3>
           <p>
             {activeWorkspace && activeWorkspace.id !== 'individual'
@@ -136,10 +136,10 @@ export default function DashboardPage() {
             </div>
           ))}
           <div className="dash-card" onClick={handleNewSession}
-               style={{ display: 'grid', placeItems: 'center', borderStyle: 'dashed', minHeight: 180 }}>
+            style={{ display: 'grid', placeItems: 'center', borderStyle: 'dashed', minHeight: 180 }}>
             <div style={{ textAlign: 'center', color: 'var(--muted)' }}>
               <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" style={{ marginBottom: 8 }}>
-                <path d="M12 5v14M5 12h14"/>
+                <path d="M12 5v14M5 12h14" />
               </svg>
               <div style={{ fontWeight: 600, fontSize: 14 }}>New session</div>
             </div>

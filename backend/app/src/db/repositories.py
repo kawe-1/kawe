@@ -101,7 +101,6 @@ class UserRepository:
             return
         allowed = {
             "name",
-            "account_type",
             "academic_level",
             "institution",
             "subject_area",
@@ -125,8 +124,16 @@ class SessionRepository:
         session_id: str,
         title: str,
         user_id: Optional[str] = None,
+        group_id: Optional[str] = None,
+        course_id: Optional[str] = None,
     ) -> dict[str, Any]:
-        session = StudySession(id=session_id, title=title, user_id=user_id)
+        session = StudySession(
+            id=session_id,
+            title=title,
+            user_id=user_id,
+            group_id=group_id,
+            course_id=course_id,
+        )
         self.db.add(session)
         self.db.commit()
         self.db.refresh(session)
@@ -140,6 +147,22 @@ class SessionRepository:
         rows = self.db.scalars(
             select(StudySession)
             .where(StudySession.user_id == user_id)
+            .order_by(StudySession.created_at.desc())
+        ).all()
+        return [_to_dict(r) for r in rows]
+
+    def list_sessions_for_group(self, group_id: str) -> list[dict[str, Any]]:
+        rows = self.db.scalars(
+            select(StudySession)
+            .where(StudySession.group_id == group_id)
+            .order_by(StudySession.created_at.desc())
+        ).all()
+        return [_to_dict(r) for r in rows]
+
+    def list_sessions_for_course(self, course_id: str) -> list[dict[str, Any]]:
+        rows = self.db.scalars(
+            select(StudySession)
+            .where(StudySession.course_id == course_id)
             .order_by(StudySession.created_at.desc())
         ).all()
         return [_to_dict(r) for r in rows]

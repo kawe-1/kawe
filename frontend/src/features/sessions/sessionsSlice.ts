@@ -21,17 +21,23 @@ const initialState: SessionsState = {
   detailStatus: 'idle',
 };
 
-export const fetchSessions = createAsyncThunk('sessions/fetchSessions', async () => {
-  return await listSessions();
-});
+export const fetchSessions = createAsyncThunk(
+  'sessions/fetchSessions',
+  async ({ workspaceId, workspaceType }: { workspaceId?: string; workspaceType?: string } = {}) => {
+    return await listSessions(workspaceId, workspaceType);
+  },
+);
 
 export const fetchSessionDetail = createAsyncThunk('sessions/fetchSessionDetail', async (id: string) => {
   return await getSession(id);
 });
 
-export const createNewSession = createAsyncThunk('sessions/createNewSession', async (title: string) => {
-  return await createSessionApi(title);
-});
+export const createNewSession = createAsyncThunk(
+  'sessions/createNewSession',
+  async (params: { title: string; workspaceId?: string; workspaceType?: string }) => {
+    return await createSessionApi(params.title, params.workspaceId, params.workspaceType);
+  },
+);
 
 export const sessionsSlice = createSlice({
   name: 'sessions',

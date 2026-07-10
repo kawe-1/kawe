@@ -29,7 +29,6 @@ export async function joinCourse(code: string): Promise<JoinCourseResponse> {
 
 export async function updateUserProfile(payload: {
   name?: string;
-  account_type?: string;
   subject_area?: string[];
   academic_level?: string;
   institution?: string;

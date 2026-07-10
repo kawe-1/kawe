@@ -3,19 +3,12 @@ import { useAppDispatch, useAppSelector } from '../../app/hooks';
 import { updateProfile, logout } from '../../features/auth/authSlice';
 import { setLayout, toggleDarkMode } from '../../features/ui/uiSlice';
 import { updateUserProfile } from '../../services/endpoints/groups';
-import type { AccountType } from '../../types/user';
-
 const OB_SUBJECTS = [
   'Biology', 'Chemistry', 'Physics', 'Psychology', 'Computer Science',
   'Mathematics', 'History', 'Literature', 'Economics', 'Engineering', 'Medicine', 'Law',
 ];
 const OB_LEVELS = ['High School', 'Undergraduate', 'Postgraduate', 'Professional'];
 
-const ACCOUNT_TYPE_LABELS: Record<AccountType, string> = {
-  individual: 'Individual',
-  study_group: 'Study Group',
-  course_group: 'Course Group',
-};
 
 
 // ── PROFILE VIEW ──────────────────────────────────────────────────────────────
@@ -24,13 +17,13 @@ export function ProfileView() {
   const dispatch = useAppDispatch();
   const { profile } = useAppSelector(state => state.auth);
 
-  const [name, setName]             = React.useState(profile.name || '');
-  const [bio, setBio]               = React.useState(profile.bio || '');
-  const [subs, setSubs]             = React.useState<string[]>(profile.subjectArea ?? []);
-  const [level, setLevel]           = React.useState(profile.academicLevel || '');
+  const [name, setName] = React.useState(profile.name || '');
+  const [bio, setBio] = React.useState(profile.bio || '');
+  const [subs, setSubs] = React.useState<string[]>(profile.subjectArea ?? []);
+  const [level, setLevel] = React.useState(profile.academicLevel || '');
   const [institution, setInstitution] = React.useState(profile.institution || '');
-  const [saved, setSaved]           = React.useState(false);
-  const [saving, setSaving]         = React.useState(false);
+  const [saved, setSaved] = React.useState(false);
+  const [saving, setSaving] = React.useState(false);
   const fileRef = React.useRef<HTMLInputElement>(null);
 
   const toggleSub = (s: string) =>
@@ -81,13 +74,13 @@ export function ProfileView() {
             {profile.avatar
               ? <img src={profile.avatar} alt="" />
               : <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
-                  <circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 4-7 8-7s8 3 8 7"/>
-                </svg>
+                <circle cx="12" cy="8" r="4" /><path d="M4 20c0-4 4-7 8-7s8 3 8 7" />
+              </svg>
             }
             <div className="avatar-overlay">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-                <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
-                <circle cx="12" cy="13" r="4"/>
+                <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
+                <circle cx="12" cy="13" r="4" />
               </svg>
             </div>
             <input ref={fileRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={handleAvatar} />
@@ -179,15 +172,15 @@ export function SettingsView() {
   const layoutInfo = [
     {
       key: 'sidebar', label: 'Sidebar', desc: 'Views in the left panel',
-      icon: <svg viewBox="0 0 48 36" fill="none" stroke="currentColor" strokeWidth="2"><rect x="1" y="1" width="46" height="34" rx="4"/><line x1="16" y1="1" x2="16" y2="35"/><line x1="3" y1="11" x2="14" y2="11"/><line x1="3" y1="17" x2="14" y2="17"/><line x1="3" y1="23" x2="14" y2="23"/></svg>,
+      icon: <svg viewBox="0 0 48 36" fill="none" stroke="currentColor" strokeWidth="2"><rect x="1" y="1" width="46" height="34" rx="4" /><line x1="16" y1="1" x2="16" y2="35" /><line x1="3" y1="11" x2="14" y2="11" /><line x1="3" y1="17" x2="14" y2="17" /><line x1="3" y1="23" x2="14" y2="23" /></svg>,
     },
     {
       key: 'top', label: 'Top Tabs', desc: 'Views above the content',
-      icon: <svg viewBox="0 0 48 36" fill="none" stroke="currentColor" strokeWidth="2"><rect x="1" y="1" width="46" height="34" rx="4"/><line x1="1" y1="11" x2="47" y2="11"/><rect x="6" y="4" width="10" height="5" rx="2" fill="currentColor" opacity=".3"/><rect x="19" y="4" width="10" height="5" rx="2"/></svg>,
+      icon: <svg viewBox="0 0 48 36" fill="none" stroke="currentColor" strokeWidth="2"><rect x="1" y="1" width="46" height="34" rx="4" /><line x1="1" y1="11" x2="47" y2="11" /><rect x="6" y="4" width="10" height="5" rx="2" fill="currentColor" opacity=".3" /><rect x="19" y="4" width="10" height="5" rx="2" /></svg>,
     },
     {
       key: 'split', label: 'Split', desc: 'Content + chat side by side',
-      icon: <svg viewBox="0 0 48 36" fill="none" stroke="currentColor" strokeWidth="2"><rect x="1" y="1" width="46" height="34" rx="4"/><line x1="28" y1="1" x2="28" y2="35"/></svg>,
+      icon: <svg viewBox="0 0 48 36" fill="none" stroke="currentColor" strokeWidth="2"><rect x="1" y="1" width="46" height="34" rx="4" /><line x1="28" y1="1" x2="28" y2="35" /></svg>,
     },
   ];
 
@@ -220,20 +213,7 @@ export function SettingsView() {
           <h3>Account</h3>
           <p className="settings-desc">Your account type and group membership.</p>
 
-          <div className="setting-row">
-            <div>
-              <div className="setting-label">Account type</div>
-              <div className="setting-hint">
-                {ACCOUNT_TYPE_LABELS[profile.accountType ?? 'individual']}
-                {' · '}
-                <span style={{ color: 'var(--muted)' }}>
-                  To change this, complete a new onboarding flow
-                </span>
-              </div>
-            </div>
-          </div>
-
-          {profile.accountType === 'study_group' && profile.group && (
+          {profile.group && (
             <div className="setting-row">
               <div>
                 <div className="setting-label">{profile.group.name}</div>
@@ -259,7 +239,7 @@ export function SettingsView() {
             </div>
           )}
 
-          {profile.accountType === 'course_group' && profile.course && (
+          {profile.course && (
             <div className="setting-row">
               <div>
                 <div className="setting-label">{profile.course.name}</div>
@@ -317,7 +297,7 @@ export function SettingsView() {
               onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--sand)'; e.currentTarget.style.background = 'transparent'; }}
             >
               <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" width="15" height="15">
-                <path d="M13 15l4-5-4-5"/><path d="M17 10H7"/><path d="M7 3H4a1 1 0 0 0-1 1v12a1 1 0 0 0 1 1h3"/>
+                <path d="M13 15l4-5-4-5" /><path d="M17 10H7" /><path d="M7 3H4a1 1 0 0 0-1 1v12a1 1 0 0 0 1 1h3" />
               </svg>
               Sign out
             </button>

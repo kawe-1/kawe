@@ -1,12 +1,10 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
-import { UserProfile, AuthStateStatus, Workspace } from '../../types/user';
+import { UserProfile, AuthStateStatus } from '../../types/user';
 
 interface AuthState {
   status: AuthStateStatus;
   profile: UserProfile;
 }
-
-const INDIVIDUAL_WORKSPACE: Workspace = { id: 'individual', type: 'individual', label: 'Individual' };
 
 const EMPTY_PROFILE: UserProfile = {
   name: '',
@@ -14,14 +12,12 @@ const EMPTY_PROFILE: UserProfile = {
   avatar: '',
   subjects: [],
   style: '',
-  accountType: 'individual',
   subjectArea: [],
   academicLevel: '',
   academicField: '',
   institution: '',
   group: null,
   course: null,
-  workspaces: [{ ...INDIVIDUAL_WORKSPACE }],
   activeWorkspaceId: 'individual',
 };
 
@@ -32,9 +28,6 @@ function loadPersistedProfile(): UserProfile {
       return {
         ...EMPTY_PROFILE,
         ...saved,
-        workspaces: Array.isArray(saved.workspaces) && saved.workspaces.length
-          ? saved.workspaces
-          : [{ ...INDIVIDUAL_WORKSPACE }],
         activeWorkspaceId: saved.activeWorkspaceId || 'individual',
       };
     }
@@ -57,21 +50,15 @@ export const authSlice = createSlice({
     updateProfile: (state, action: PayloadAction<Partial<UserProfile>>) => {
       state.profile = { ...state.profile, ...action.payload };
     },
-    // Adds a new workspace (a joined/created group or course) and makes it active.
-    addWorkspace: (state, action: PayloadAction<Workspace>) => {
-      const exists = state.profile.workspaces.some(w => w.id === action.payload.id);
-      if (!exists) state.profile.workspaces.push(action.payload);
-      state.profile.activeWorkspaceId = action.payload.id;
-    },
     setActiveWorkspace: (state, action: PayloadAction<string>) => {
       state.profile.activeWorkspaceId = action.payload;
     },
     logout: (state) => {
       state.status = 'signin';
-      state.profile = { ...EMPTY_PROFILE, workspaces: [{ ...INDIVIDUAL_WORKSPACE }] };
+      state.profile = { ...EMPTY_PROFILE };
     },
   },
 });
 
-export const { setAuthStatus, updateProfile, addWorkspace, setActiveWorkspace, logout } = authSlice.actions;
+export const { setAuthStatus, updateProfile, setActiveWorkspace, logout } = authSlice.actions;
 export default authSlice.reducer;

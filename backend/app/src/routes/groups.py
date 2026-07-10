@@ -25,7 +25,6 @@ class JoinCourseRequest(BaseModel):
 
 class UpdateProfileRequest(BaseModel):
     name: str | None = None
-    account_type: str | None = None
     subject_area: list[str] | None = None
     academic_level: str | None = None
     institution: str | None = None
