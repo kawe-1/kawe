@@ -11,17 +11,5 @@ export const store = configureStore({
   },
 });
 
-// Persist the profile (name, academic info, workspaces, active workspace) across reloads
-// so switching between Individual / a group / a class sticks, rather than resetting.
-let lastProfileJson = '';
-store.subscribe(() => {
-  const profile = store.getState().auth.profile;
-  const json = JSON.stringify(profile);
-  if (json !== lastProfileJson) {
-    lastProfileJson = json;
-    try { localStorage.setItem('kawe_profile', json); } catch { /* storage unavailable */ }
-  }
-});
-
 export type RootState = ReturnType<typeof store.getState>;
 export type AppDispatch = typeof store.dispatch;
