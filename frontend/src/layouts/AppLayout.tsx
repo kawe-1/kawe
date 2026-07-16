@@ -6,6 +6,7 @@ import { setSidebarOpen, setShowAddWorkspaceModal } from '../features/ui/uiSlice
 import { CreateModal } from '../components/shared/CreateModal';
 import { AddWorkspaceModal } from '../components/shared/AddWorkspaceModal';
 import { setShowCreateModal, createNewSession } from '../features/sessions/sessionsSlice';
+import { getActiveWorkspaceId, getProfileWorkspaces } from '../types/user';
 
 export default function AppLayout() {
   const dispatch = useAppDispatch();
@@ -17,11 +18,9 @@ export default function AppLayout() {
     document.body.classList.toggle('dark', darkMode);
   }, [darkMode]);
 
-  const activeWorkspace = (() => {
-    if (profile?.group) return { id: profile.group.id, type: 'study_group' };
-    if (profile?.course) return { id: profile.course.id, type: 'course_group' };
-    return null;
-  })();
+  const workspaces = getProfileWorkspaces(profile);
+  const activeWorkspaceId = getActiveWorkspaceId(profile);
+  const activeWorkspace = workspaces.find(w => w.id === activeWorkspaceId);
 
   const handleCreateSession = (title: string) => {
     dispatch(createNewSession({

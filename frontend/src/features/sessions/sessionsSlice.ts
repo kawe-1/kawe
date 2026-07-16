@@ -9,6 +9,9 @@ interface SessionsState {
   showCreateModal: boolean;
   status: 'idle' | 'loading' | 'succeeded' | 'failed';
   detailStatus: 'idle' | 'loading' | 'succeeded' | 'failed';
+  // Which workspace `sessions` currently holds data for, so callers can tell
+  // a workspace switch apart from "already fetched" and know to refetch.
+  cachedWorkspaceKey: string | null;
 }
 
 const initialState: SessionsState = {
@@ -19,7 +22,12 @@ const initialState: SessionsState = {
   showCreateModal: false,
   status: 'idle',
   detailStatus: 'idle',
+  cachedWorkspaceKey: null,
 };
+
+export function workspaceKey(workspaceId?: string): string {
+  return workspaceId || 'individual';
+}
 
 export const fetchSessions = createAsyncThunk(
   'sessions/fetchSessions',
@@ -60,8 +68,9 @@ export const sessionsSlice = createSlice({
   },
   extraReducers: (builder) => {
     builder
-      .addCase(fetchSessions.pending, (state) => {
+      .addCase(fetchSessions.pending, (state, action) => {
         state.status = 'loading';
+        state.cachedWorkspaceKey = workspaceKey(action.meta.arg?.workspaceId);
       })
       .addCase(fetchSessions.fulfilled, (state, action) => {
         state.status = 'succeeded';

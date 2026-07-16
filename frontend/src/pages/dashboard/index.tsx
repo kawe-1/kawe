@@ -1,7 +1,7 @@
 import React, { useEffect } from 'react';
 import { useAppSelector, useAppDispatch } from '../../app/hooks';
 import { SparkIcon } from '../../components/ui/Icons';
-import { setShowCreateModal, setActiveSession, fetchSessions } from '../../features/sessions/sessionsSlice';
+import { setShowCreateModal, setActiveSession, fetchSessions, workspaceKey } from '../../features/sessions/sessionsSlice';
 import { useNavigate } from 'react-router-dom';
 import { getActiveWorkspaceId, getProfileWorkspaces, type Workspace } from '../../types/user';
 
@@ -80,7 +80,7 @@ function WorkspaceBanner({ workspace }: { workspace: Workspace }) {
 export default function DashboardPage() {
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
-  const { sessions, status } = useAppSelector(state => state.sessions);
+  const { sessions, cachedWorkspaceKey } = useAppSelector(state => state.sessions);
   const { profile } = useAppSelector(state => state.auth);
 
   const workspaces = getProfileWorkspaces(profile);
@@ -88,10 +88,10 @@ export default function DashboardPage() {
   const activeWorkspace = workspaces.find(w => w.id === activeWorkspaceId);
 
   useEffect(() => {
-    if (status === 'idle') {
+    if (workspaceKey(activeWorkspace?.id) !== cachedWorkspaceKey) {
       dispatch(fetchSessions({ workspaceId: activeWorkspace?.id, workspaceType: activeWorkspace?.type }));
     }
-  }, [status, dispatch, activeWorkspace?.id, activeWorkspace?.type]);
+  }, [cachedWorkspaceKey, dispatch, activeWorkspace?.id, activeWorkspace?.type]);
   const visibleSessions = sessions;
 
   const handleSelectSession = (s: any) => {

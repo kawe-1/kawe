@@ -1,7 +1,7 @@
 import React, { useEffect } from 'react';
 import { useAppSelector, useAppDispatch } from '../../app/hooks';
 import { useParams, useNavigate } from 'react-router-dom';
-import { setActiveSession, setActiveTab, fetchSessionDetail, fetchSessions } from '../../features/sessions/sessionsSlice';
+import { setActiveSession, setActiveTab, fetchSessionDetail, fetchSessions, workspaceKey } from '../../features/sessions/sessionsSlice';
 import { getActiveWorkspaceId, getProfileWorkspaces } from '../../types/user';
 import { SessionHeader } from '../../components/shared/SessionHeader';
 import { LoadingSpinner } from '../../components/shared/LoadingSpinner';
@@ -17,7 +17,7 @@ export default function SessionPage() {
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
 
-  const { activeSessionId, activeSessionDetail, detailStatus, activeTab, sessions } = useAppSelector(state => state.sessions);
+  const { activeSessionId, activeSessionDetail, detailStatus, activeTab, cachedWorkspaceKey } = useAppSelector(state => state.sessions);
   const { layout } = useAppSelector(state => state.ui);
   const { profile } = useAppSelector(state => state.auth);
 
@@ -30,10 +30,10 @@ export default function SessionPage() {
       dispatch(setActiveSession(id));
       dispatch(fetchSessionDetail(id));
     }
-    if (id && sessions.length === 0) {
+    if (id && workspaceKey(activeWorkspace?.id) !== cachedWorkspaceKey) {
       dispatch(fetchSessions({ workspaceId: activeWorkspace?.id, workspaceType: activeWorkspace?.type }));
     }
-  }, [id, dispatch, sessions.length, activeWorkspace?.id, activeWorkspace?.type]);
+  }, [id, dispatch, cachedWorkspaceKey, activeWorkspace?.id, activeWorkspace?.type]);
 
   if (detailStatus === 'loading' || !activeSessionDetail) {
     return (
