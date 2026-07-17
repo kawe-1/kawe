@@ -450,6 +450,33 @@ class GroupRepository:
         self.db.commit()
         return True
 
+    def list_groups_for_user(self, user_id: str) -> list[dict]:
+        memberships = self.db.scalars(
+            select(GroupMember)
+            .where(GroupMember.user_id == user_id)
+            .order_by(GroupMember.joined_at.desc())
+        ).all()
+
+        result = []
+        for m in memberships:
+            group = self.db.get(Group, m.group_id)
+            if group:
+                member_count = len(
+                    self.db.scalars(
+                        select(GroupMember).where(GroupMember.group_id == group.id)
+                    ).all()
+                )
+                result.append(
+                    {
+                        "id": group.id,
+                        "name": group.name,
+                        "code": group.code,
+                        "memberCount": member_count,
+                        "role": m.role,
+                    }
+                )
+        return result
+
 
 class CourseRepository:
     def __init__(self, db: Session):
@@ -501,3 +528,30 @@ class CourseRepository:
             "instructor": course.instructor,
             "memberCount": member_count,
         }
+
+    def list_courses_for_user(self, user_id: str) -> list[dict]:
+        memberships = self.db.scalars(
+            select(CourseMember)
+            .where(CourseMember.user_id == user_id)
+            .order_by(CourseMember.joined_at.desc())
+        ).all()
+
+        result = []
+        for m in memberships:
+            course = self.db.get(Course, m.course_id)
+            if course:
+                member_count = len(
+                    self.db.scalars(
+                        select(CourseMember).where(CourseMember.course_id == course.id)
+                    ).all()
+                )
+                result.append(
+                    {
+                        "id": course.id,
+                        "name": course.name,
+                        "code": course.code,
+                        "instructor": course.instructor,
+                        "memberCount": member_count,
+                    }
+                )
+        return result

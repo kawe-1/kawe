@@ -16,8 +16,8 @@ const EMPTY_PROFILE: UserProfile = {
   academicLevel: '',
   academicField: '',
   institution: '',
-  group: null,
-  course: null,
+  groups: [],
+  courses: [],
   activeWorkspaceId: 'individual',
 };
 

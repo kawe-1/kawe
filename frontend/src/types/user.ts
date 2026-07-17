@@ -6,7 +6,7 @@ export interface GroupInfo {
   name: string;
   code: string;
   memberCount: number;
-  role: 'admin' | 'member';
+  role: 'owner' | 'admin' | 'member';
 }
 
 export interface CourseInfo {
@@ -25,6 +25,7 @@ export interface Workspace {
   course?: CourseInfo | null;
 }
 
+
 export interface UserProfile {
   name: string;
   bio: string;
@@ -35,8 +36,8 @@ export interface UserProfile {
   academicLevel?: AcademicLevel | string;
   academicField?: string;
   institution?: string;
-  group?: GroupInfo | null;
-  course?: CourseInfo | null;
+  groups: GroupInfo[];
+  courses: CourseInfo[];
   activeWorkspaceId?: string;
 }
 
@@ -45,32 +46,39 @@ export function getProfileWorkspaces(profile?: UserProfile | null): Workspace[] 
     { id: 'individual', type: 'individual', label: 'Individual' },
   ];
 
-  if (profile?.group) {
+  profile?.groups?.forEach(g => {
     workspaces.push({
-      id: profile.group.id,
+      id: g.id,
       type: 'study_group',
-      label: profile.group.name,
-      group: profile.group,
+      label: g.name,
+      group: g,
     });
-  }
+  });
 
-  if (profile?.course) {
+  profile?.courses?.forEach(c => {
     workspaces.push({
-      id: profile.course.id,
+      id: c.id,
       type: 'course_group',
-      label: profile.course.name,
-      course: profile.course,
+      label: c.name,
+      course: c,
     });
-  }
+  });
 
   return workspaces;
 }
 
 export function getActiveWorkspaceId(profile?: UserProfile | null): string {
-  if (profile?.activeWorkspaceId) return profile.activeWorkspaceId;
-  if (profile?.group?.id) return profile.group.id;
-  if (profile?.course?.id) return profile.course.id;
-  return 'individual';
+  // 1. User preference (saved choice)
+  if (profile?.activeWorkspaceId) {
+    return profile.activeWorkspaceId;
+  }
+
+  // 2. Fallback to first available workspace
+  const workspaces = getProfileWorkspaces(profile);
+
+  // Prefer groups over courses if both exist, or just return first non-individual
+  const nonIndividual = workspaces.find(w => w.id !== 'individual');
+  return nonIndividual?.id || 'individual';
 }
 
 export type AuthStateStatus = 'landing' | 'signin' | 'onboarding' | 'app';

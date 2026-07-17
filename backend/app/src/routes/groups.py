@@ -104,12 +104,10 @@ def api_me_full(
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
 
-    group = None
-    course = None
     if user.get("account_type") == "study_group":
-        group = group_repo.get_group_for_user(user["id"])
+        groups = group_repo.list_groups_for_user(current_user["id"])
     elif user.get("account_type") == "course_group":
-        course = course_repo.get_course_for_user(user["id"])
+        courses = course_repo.list_courses_for_user(current_user["id"])
 
     return {
         "id": user["id"],
@@ -120,6 +118,6 @@ def api_me_full(
         "academic_level": user.get("academic_level"),
         "institution": user.get("institution"),
         "subject_area": user.get("subject_area", []),
-        "group": group,
-        "course": course,
+        "groups": groups,
+        "courses": courses,
     }
