@@ -51,6 +51,7 @@ def api_create_session(
     repo.create_session(
         session_id,
         req.title,
+        created_by=current_user["id"],
         user_id=current_user["id"],
         group_id=group_id,
         course_id=course_id,
