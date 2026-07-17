@@ -38,26 +38,20 @@ def api_create_session(
 
     group_id = None
     course_id = None
-    user_id = None
     if req.workspace_type == "study_group" and req.workspace_id:
-        user_group = group_repo.get_group_for_user(current_user["id"])
-        if not user_group or user_group["id"] != req.workspace_id:
+        if not group_repo.is_member_of_group(req.workspace_id, current_user["id"]):
             raise HTTPException(status_code=403, detail="Not a member of that group.")
         group_id = req.workspace_id
     elif req.workspace_type == "course_group" and req.workspace_id:
-        user_course = course_repo.get_course_for_user(current_user["id"])
-        if not user_course or user_course["id"] != req.workspace_id:
+        if not course_repo.is_member_of_course(req.workspace_id, current_user["id"]):
             raise HTTPException(status_code=403, detail="Not enrolled in that class.")
         course_id = req.workspace_id
-    else:
-        user_id = current_user["id"]
 
     session_id = f"sess_{uuid.uuid4().hex[:12]}"
     repo.create_session(
         session_id,
         req.title,
-        created_by=current_user["id"],
-        user_id=user_id,
+        user_id=current_user["id"],
         group_id=group_id,
         course_id=course_id,
     )
@@ -82,14 +76,12 @@ def api_list_sessions(
     course_repo = CourseRepository(db=db)
 
     if workspace_type == "study_group" and workspace_id:
-        user_group = group_repo.get_group_for_user(current_user["id"])
-        if not user_group or user_group["id"] != workspace_id:
+        if not group_repo.is_member_of_group(workspace_id, current_user["id"]):
             raise HTTPException(status_code=403, detail="Not a member of that group.")
         return repo.list_sessions_for_group(workspace_id)
 
     if workspace_type == "course_group" and workspace_id:
-        user_course = course_repo.get_course_for_user(current_user["id"])
-        if not user_course or user_course["id"] != workspace_id:
+        if not course_repo.is_member_of_course(workspace_id, current_user["id"]):
             raise HTTPException(status_code=403, detail="Not enrolled in that class.")
         return repo.list_sessions_for_course(workspace_id)
 
@@ -105,6 +97,8 @@ def api_get_session(
     session_repo = SessionRepository(db=db)
     source_repo = SourceRepository(db=db)
     artifact_repo = ArtifactRepository(db=db)
+    group_repo = GroupRepository(db=db)
+    course_repo = CourseRepository(db=db)
 
     session = session_repo.get_session(session_id)
     if not session:
@@ -112,11 +106,13 @@ def api_get_session(
 
     allowed = session.get("user_id") == current_user["id"]
     if not allowed and session.get("group_id"):
-        user_group = GroupRepository(db=db).get_group_for_user(current_user["id"])
-        allowed = bool(user_group and user_group["id"] == session.get("group_id"))
+        allowed = group_repo.is_member_of_group(
+            session.get("group_id"), current_user["id"]
+        )
     if not allowed and session.get("course_id"):
-        user_course = CourseRepository(db=db).get_course_for_user(current_user["id"])
-        allowed = bool(user_course and user_course["id"] == session.get("course_id"))
+        allowed = course_repo.is_member_of_course(
+            session.get("course_id"), current_user["id"]
+        )
     if not allowed:
         raise HTTPException(status_code=404, detail="Session not found")
 

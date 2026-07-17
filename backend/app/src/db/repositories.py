@@ -339,6 +339,10 @@ class GroupRepository:
     def __init__(self, db: Session):
         self.db = db
 
+    def is_member_of_group(self, group_id: str, user_id: str) -> bool:
+        membership = self.db.get(GroupMember, (group_id, user_id))
+        return membership is not None
+
     def create_group(self, group_id: str, name: str, created_by: str) -> dict[str, Any]:
         # Ensure unique code
         while True:
@@ -390,13 +394,11 @@ class GroupRepository:
             "role": membership.role,
         }
 
-    def get_group_for_user(self, user_id: str) -> Optional[dict[str, Any]]:
-        membership = self.db.scalar(
-            select(GroupMember).where(GroupMember.user_id == user_id)
-        )
+    def get_group_membership(self, group_id: str, user_id: str) -> Optional[dict]:
+        membership = self.db.get(GroupMember, (group_id, user_id))
         if not membership:
             return None
-        group = self.db.get(Group, membership.group_id)
+        group = self.db.get(Group, group_id)
         if not group:
             return None
         member_count = len(
@@ -482,6 +484,10 @@ class CourseRepository:
     def __init__(self, db: Session):
         self.db = db
 
+    def is_member_of_course(self, course_id: str, user_id: str) -> bool:
+        membership = self.db.get(CourseMember, (course_id, user_id))
+        return membership is not None
+
     def join_course(self, code: str, user_id: str) -> Optional[dict[str, Any]]:
         course = self.db.scalar(select(Course).where(Course.code == code.upper()))
         if not course:
@@ -499,28 +505,6 @@ class CourseRepository:
             ).all()
         )
 
-        return {
-            "id": course.id,
-            "name": course.name,
-            "code": course.code,
-            "instructor": course.instructor,
-            "memberCount": member_count,
-        }
-
-    def get_course_for_user(self, user_id: str) -> Optional[dict[str, Any]]:
-        membership = self.db.scalar(
-            select(CourseMember).where(CourseMember.user_id == user_id)
-        )
-        if not membership:
-            return None
-        course = self.db.get(Course, membership.course_id)
-        if not course:
-            return None
-        member_count = len(
-            self.db.scalars(
-                select(CourseMember).where(CourseMember.course_id == course.id)
-            ).all()
-        )
         return {
             "id": course.id,
             "name": course.name,
