@@ -213,14 +213,14 @@ export function SettingsView() {
           <h3>Account</h3>
           <p className="settings-desc">Your account type and group membership.</p>
 
-          {profile.group && (
-            <div className="setting-row">
+          {profile.groups.map(group => (
+            <div className="setting-row" key={group.id}>
               <div>
-                <div className="setting-label">{profile.group.name}</div>
+                <div className="setting-label">{group.name}</div>
                 <div className="setting-hint">
-                  {profile.group.role === 'admin' ? 'Group admin' : 'Member'}
+                  {group.role === 'owner' ? 'Group owner' : group.role === 'admin' ? 'Group admin' : 'Member'}
                   {' · '}
-                  {profile.group.memberCount} {profile.group.memberCount === 1 ? 'member' : 'members'}
+                  {group.memberCount} {group.memberCount === 1 ? 'member' : 'members'}
                 </div>
               </div>
               <div style={{
@@ -234,19 +234,19 @@ export function SettingsView() {
                 borderRadius: 8,
                 padding: '4px 10px',
               }}>
-                {profile.group.code}
+                {group.code}
               </div>
             </div>
-          )}
+          ))}
 
-          {profile.course && (
-            <div className="setting-row">
+          {profile.courses.map(course => (
+            <div className="setting-row" key={course.id}>
               <div>
-                <div className="setting-label">{profile.course.name}</div>
+                <div className="setting-label">{course.name}</div>
                 <div className="setting-hint">
-                  {profile.course.instructor}
+                  {course.instructor}
                   {' · '}
-                  {profile.course.memberCount} enrolled
+                  {course.memberCount} enrolled
                 </div>
               </div>
               <div style={{
@@ -260,10 +260,10 @@ export function SettingsView() {
                 borderRadius: 8,
                 padding: '4px 10px',
               }}>
-                {profile.course.code}
+                {course.code}
               </div>
             </div>
-          )}
+          ))}
         </div>
 
         {/* ── Appearance ── */}
