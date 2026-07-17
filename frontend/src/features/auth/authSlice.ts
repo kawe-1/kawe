@@ -1,5 +1,5 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
-import { UserProfile, AuthStateStatus } from '../../types/user';
+import { UserProfile, AuthStateStatus, GroupInfo, CourseInfo } from '../../types/user';
 
 interface AuthState {
   status: AuthStateStatus;
@@ -50,6 +50,21 @@ export const authSlice = createSlice({
     updateProfile: (state, action: PayloadAction<Partial<UserProfile>>) => {
       state.profile = { ...state.profile, ...action.payload };
     },
+    // Adds a newly created/joined group or course to the profile so it shows
+    // up in the workspace switcher immediately, without waiting for a reload.
+    addWorkspace: (
+      state,
+      action: PayloadAction<{ type: 'study_group'; group: GroupInfo } | { type: 'course_group'; course: CourseInfo }>,
+    ) => {
+      const payload = action.payload;
+      if (payload.type === 'study_group') {
+        const exists = state.profile.groups.some(g => g.id === payload.group.id);
+        if (!exists) state.profile.groups.push(payload.group);
+      } else {
+        const exists = state.profile.courses.some(c => c.id === payload.course.id);
+        if (!exists) state.profile.courses.push(payload.course);
+      }
+    },
     setActiveWorkspace: (state, action: PayloadAction<string>) => {
       state.profile.activeWorkspaceId = action.payload;
     },
@@ -60,5 +75,5 @@ export const authSlice = createSlice({
   },
 });
 
-export const { setAuthStatus, updateProfile, setActiveWorkspace, logout } = authSlice.actions;
+export const { setAuthStatus, updateProfile, addWorkspace, setActiveWorkspace, logout } = authSlice.actions;
 export default authSlice.reducer;

@@ -1,13 +1,7 @@
 import api from '../axios';
 import { GroupInfo, CourseInfo } from '../../types/user';
 
-export interface CreateGroupResponse {
-  id: string;
-  name: string;
-  code: string;
-  memberCount: number;
-  role: 'admin' | 'member';
-}
+export interface CreateGroupResponse extends GroupInfo { }
 
 export interface JoinGroupResponse extends GroupInfo { }
 export interface JoinCourseResponse extends CourseInfo { }

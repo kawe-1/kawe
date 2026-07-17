@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../../app/hooks';
-import { setAuthStatus, updateProfile, setActiveWorkspace } from '../../features/auth/authSlice';
+import { setAuthStatus, updateProfile, addWorkspace, setActiveWorkspace } from '../../features/auth/authSlice';
 import { SparkIcon } from '../../components/ui/Icons';
 import { createGroup, joinGroup, joinCourse, updateUserProfile } from '../../services/endpoints/groups';
 import { ACADEMIC_LEVELS, ACADEMIC_FIELDS } from '../../constants/academics';
@@ -86,22 +86,26 @@ export default function OnboardingPage() {
     const finalGroup = overrides?.group ?? groupResult;
     const finalCourse = overrides?.course ?? courseResult;
 
-    const finalProfile = {
-      ...profile,
-      name: dName.trim() || userName,
+    const finalName = dName.trim() || userName;
+
+    dispatch(updateProfile({
+      name: finalName,
       academicLevel: level,
       academicField: field,
       institution,
-      group: finalGroup,
-      course: finalCourse,
-    };
-    dispatch(updateProfile(finalProfile));
-    if (finalGroup) dispatch(setActiveWorkspace(finalGroup.id));
-    if (finalCourse) dispatch(setActiveWorkspace(finalCourse.id));
+    }));
+    if (finalGroup) {
+      dispatch(addWorkspace({ type: 'study_group', group: finalGroup }));
+      dispatch(setActiveWorkspace(finalGroup.id));
+    }
+    if (finalCourse) {
+      dispatch(addWorkspace({ type: 'course_group', course: finalCourse }));
+      dispatch(setActiveWorkspace(finalCourse.id));
+    }
     dispatch(setAuthStatus('app'));
 
     updateUserProfile({
-      name: finalProfile.name,
+      name: finalName,
       academic_level: level,
       institution,
       group_id: finalGroup?.id ?? null,
@@ -122,11 +126,11 @@ export default function OnboardingPage() {
         setStep(s => s + 1);
       } else if (groupMode === 'create') {
         const group = await createGroup(groupName.trim());
-        setGroupResult({ ...group, role: 'admin' });
+        setGroupResult(group);
         setStep(s => s + 1);
       } else {
         const group = await joinGroup(joinCode.trim().toUpperCase());
-        setGroupResult({ ...group, role: 'member' });
+        setGroupResult(group);
         setStep(s => s + 1);
       }
     } catch (e: any) {

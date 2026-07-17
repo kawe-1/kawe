@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useAppDispatch } from '../../app/hooks';
-import { setActiveWorkspace, updateProfile } from '../../features/auth/authSlice';
-import { createGroup, joinGroup, joinCourse, updateUserProfile } from '../../services/endpoints/groups';
+import { setActiveWorkspace, addWorkspace } from '../../features/auth/authSlice';
+import { createGroup, joinGroup, joinCourse } from '../../services/endpoints/groups';
 
 type Tab = 'create_group' | 'join_group' | 'join_course';
 
@@ -25,12 +25,15 @@ export function AddWorkspaceModal({ onClose }: AddWorkspaceModalProps) {
     try {
       if (tab === 'create_group') {
         const group = await createGroup(groupName.trim())
+        dispatch(addWorkspace({ type: 'study_group', group }));
         dispatch(setActiveWorkspace(group.id));
       } else if (tab === 'join_group') {
         const group = await joinGroup(code.trim().toUpperCase())
+        dispatch(addWorkspace({ type: 'study_group', group }));
         dispatch(setActiveWorkspace(group.id));
       } else {
         const course = await joinCourse(code.trim().toUpperCase());
+        dispatch(addWorkspace({ type: 'course_group', course }));
         dispatch(setActiveWorkspace(course.id));
       }
       onClose();
