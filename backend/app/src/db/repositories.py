@@ -123,6 +123,7 @@ class SessionRepository:
         self,
         session_id: str,
         title: str,
+        created_by: str,
         user_id: Optional[str] = None,
         group_id: Optional[str] = None,
         course_id: Optional[str] = None,
@@ -133,6 +134,7 @@ class SessionRepository:
             user_id=user_id,
             group_id=group_id,
             course_id=course_id,
+            created_by=created_by,
         )
         self.db.add(session)
         self.db.commit()
@@ -146,7 +148,11 @@ class SessionRepository:
     def list_sessions_for_user(self, user_id: str) -> list[dict[str, Any]]:
         rows = self.db.scalars(
             select(StudySession)
-            .where(StudySession.user_id == user_id)
+            .where(
+                StudySession.user_id == user_id,
+                StudySession.group_id.is_(None),
+                StudySession.course_id.is_(None),
+            )
             .order_by(StudySession.created_at.desc())
         ).all()
         return [_to_dict(r) for r in rows]

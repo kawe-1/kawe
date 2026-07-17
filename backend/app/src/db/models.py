@@ -42,7 +42,10 @@ class User(Base):
     )
 
     sessions: Mapped[list["StudySession"]] = relationship(
-        "StudySession", back_populates="user", cascade="all, delete-orphan"
+        "StudySession",
+        back_populates="user",
+        cascade="all, delete-orphan",
+        foreign_keys="StudySession.user_id",
     )
 
 
@@ -64,13 +67,24 @@ class StudySession(Base):
     course_id: Mapped[str | None] = mapped_column(
         String, ForeignKey("courses.id", ondelete="CASCADE"), nullable=True
     )
+
+    created_by: Mapped[str] = mapped_column(
+        String,
+        ForeignKey("users.id", ondelete="SET NULL"),
+        nullable=False,
+    )
+
     title: Mapped[str] = mapped_column(String, nullable=False)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), default=_now
     )
 
     # relationships
-    user: Mapped["User | None"] = relationship("User", back_populates="sessions")
+    user: Mapped["User | None"] = relationship(
+        "User",
+        back_populates="sessions",
+        foreign_keys="StudySession.user_id",
+    )
     group: Mapped["Group | None"] = relationship("Group")
     course: Mapped["Course | None"] = relationship("Course")
     sources: Mapped[list["Source"]] = relationship(
@@ -82,6 +96,7 @@ class StudySession(Base):
     chat_history: Mapped[list["ChatMessage"]] = relationship(
         "ChatMessage", back_populates="session", cascade="all, delete-orphan"
     )
+    # creator: Mapped["User"] = relationship("User", foreign_keys=[created_by])
 
 
 class Source(Base):

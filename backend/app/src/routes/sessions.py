@@ -38,6 +38,7 @@ def api_create_session(
 
     group_id = None
     course_id = None
+    user_id = None
     if req.workspace_type == "study_group" and req.workspace_id:
         user_group = group_repo.get_group_for_user(current_user["id"])
         if not user_group or user_group["id"] != req.workspace_id:
@@ -48,12 +49,15 @@ def api_create_session(
         if not user_course or user_course["id"] != req.workspace_id:
             raise HTTPException(status_code=403, detail="Not enrolled in that class.")
         course_id = req.workspace_id
+    else:
+        user_id = current_user["id"]
 
     session_id = f"sess_{uuid.uuid4().hex[:12]}"
     repo.create_session(
         session_id,
         req.title,
-        user_id=current_user["id"],
+        created_by=current_user["id"],
+        user_id=user_id,
         group_id=group_id,
         course_id=course_id,
     )
