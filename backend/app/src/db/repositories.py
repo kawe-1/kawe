@@ -433,16 +433,10 @@ class GroupRepository:
         """Transfer ownership from current owner to new user.
         Returns True if successful."""
 
-        # Verify current user is owner
-        current_role = self.get_role(group_id, current_owner_id)
-        if current_role != "owner":
-            return False
-
-        # Get both memberships
         old_owner = self.db.get(GroupMember, (group_id, current_owner_id))
         new_owner = self.db.get(GroupMember, (group_id, new_owner_id))
 
-        if not old_owner or not new_owner:
+        if not old_owner or not new_owner or old_owner.role != "owner":
             return False
 
         # Transfer ownership
