@@ -351,7 +351,7 @@ class GroupRepository:
         self.db.add(group)
 
         # Creator becomes admin member
-        member = GroupMember(group_id=group_id, user_id=created_by, role="admin")
+        member = GroupMember(group_id=group_id, user_id=created_by, role="owner")
         self.db.add(member)
         self.db.commit()
         self.db.refresh(group)
@@ -361,7 +361,7 @@ class GroupRepository:
             "name": group.name,
             "code": group.code,
             "memberCount": 1,
-            "role": "admin",
+            "role": "owner",
         }
 
     def join_group(self, code: str, user_id: str) -> dict[str, Any]:
@@ -370,10 +370,10 @@ class GroupRepository:
             return None
 
         # Idempotent — don't double-add
-        existing = self.db.get(GroupMember, (group.id, user_id))
-        if not existing:
-            member = GroupMember(group_id=group.id, user_id=user_id, role="member")
-            self.db.add(member)
+        membership = self.db.get(GroupMember, (group.id, user_id))
+        if not membership:
+            membership = GroupMember(group_id=group.id, user_id=user_id, role="member")
+            self.db.add(membership)
             self.db.commit()
 
         member_count = len(
@@ -381,14 +381,13 @@ class GroupRepository:
                 select(GroupMember).where(GroupMember.group_id == group.id)
             ).all()
         )
-        role = existing.role if existing else "member"
 
         return {
             "id": group.id,
             "name": group.name,
             "code": group.code,
             "memberCount": member_count,
-            "role": role,
+            "role": membership.role,
         }
 
     def get_group_for_user(self, user_id: str) -> Optional[dict[str, Any]]:
@@ -412,6 +411,44 @@ class GroupRepository:
             "memberCount": member_count,
             "role": membership.role,
         }
+
+    def make_admin(self, group_id: str, user_id: str) -> bool:
+        """Promote a member to admin. Returns True if successful."""
+        membership = self.db.get(GroupMember, (group_id, user_id))
+        if not membership:
+            return False
+
+        if membership.role == "owner":
+            return False  # Owner can't be demoted via make_admin
+
+        membership.role = "admin"
+        self.db.commit()
+        return True
+
+    def make_owner(
+        self, group_id: str, new_owner_id: str, current_owner_id: str
+    ) -> bool:
+        """Transfer ownership from current owner to new user.
+        Returns True if successful."""
+
+        # Verify current user is owner
+        current_role = self.get_role(group_id, current_owner_id)
+        if current_role != "owner":
+            return False
+
+        # Get both memberships
+        old_owner = self.db.get(GroupMember, (group_id, current_owner_id))
+        new_owner = self.db.get(GroupMember, (group_id, new_owner_id))
+
+        if not old_owner or not new_owner:
+            return False
+
+        # Transfer ownership
+        old_owner.role = "admin"
+        new_owner.role = "owner"
+
+        self.db.commit()
+        return True
 
 
 class CourseRepository:

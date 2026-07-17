@@ -3,7 +3,15 @@ import string
 from datetime import datetime, timezone
 from typing import Any
 
-from sqlalchemy import Boolean, DateTime, ForeignKey, String, Text, func
+from sqlalchemy import (
+    Boolean,
+    CheckConstraint,
+    DateTime,
+    ForeignKey,
+    String,
+    Text,
+    func,
+)
 from sqlalchemy.dialects.postgresql import ARRAY, JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -190,7 +198,11 @@ class Group(Base):
 
 class GroupMember(Base):
     __tablename__ = "group_members"
-
+    __table_args__ = (
+        CheckConstraint(
+            "role IN ('owner', 'admin', 'member')", name="ck_group_member_role"
+        ),
+    )
     group_id: Mapped[str] = mapped_column(
         String, ForeignKey("groups.id", ondelete="CASCADE"), primary_key=True
     )
@@ -198,8 +210,8 @@ class GroupMember(Base):
         String, ForeignKey("users.id", ondelete="CASCADE"), primary_key=True
     )
     role: Mapped[str] = mapped_column(
-        String, nullable=False, default="member"
-    )  # 'admin' | 'member'
+        String, nullable=False, default="member", server_default="member"
+    )
     joined_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), default=_now
     )
