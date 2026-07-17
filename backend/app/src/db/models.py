@@ -76,10 +76,13 @@ class StudySession(Base):
         String, ForeignKey("courses.id", ondelete="CASCADE"), nullable=True
     )
 
-    created_by: Mapped[str] = mapped_column(
+    # Nullable because the FK is ON DELETE SET NULL — the session's
+    # attribution outlives the creator's account, but the column itself
+    # can't stay populated once that user is gone.
+    created_by: Mapped[str | None] = mapped_column(
         String,
         ForeignKey("users.id", ondelete="SET NULL"),
-        nullable=False,
+        nullable=True,
     )
 
     title: Mapped[str] = mapped_column(String, nullable=False)

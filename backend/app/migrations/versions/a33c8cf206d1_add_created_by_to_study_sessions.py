@@ -28,14 +28,15 @@ def upgrade() -> None:
     WHERE user_id IS NOT NULL
 """)
     op.execute("""
-        UPDATE sessions 
-        SET created_by = groups.created_by 
-        FROM groups 
+        UPDATE sessions
+        SET created_by = groups.created_by
+        FROM groups
         WHERE sessions.group_id = groups.id AND sessions.created_by IS NULL
     """)
-    op.alter_column("sessions", "created_by", nullable=False)
+    # Stays nullable: the FK below is ON DELETE SET NULL, so the column
+    # must be able to hold NULL once the creator's account is gone.
 
-        # Add foreign key
+    # Add foreign key
     op.create_foreign_key(
         "fk_sessions_created_by",
         "sessions",
