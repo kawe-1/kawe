@@ -1,5 +1,5 @@
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
-import { UserProfile, AuthStateStatus, GroupInfo, CourseInfo } from '../../types/user';
+import { UserProfile, AuthStateStatus, GroupInfo, CourseInfo, getActiveWorkspaceId } from '../../types/user';
 import api from '../../services/axios';
 
 interface AuthState {
@@ -85,19 +85,19 @@ export const authSlice = createSlice({
       }
 
       const user = action.payload;
-      const activeWorkspaceId =
-        user.activeWorkspaceId || user.group?.id || user.course?.id || 'individual';
 
-      state.profile = {
+      const profile: UserProfile = {
         ...EMPTY_PROFILE,
         name: user.name,
         subjectArea: user.subject_area ?? [],
         academicLevel: user.academic_level ?? '',
         institution: user.institution ?? '',
-        group: user.group ?? null,
-        course: user.course ?? null,
-        activeWorkspaceId,
+        groups: user.groups ?? [],
+        courses: user.courses ?? [],
       };
+
+      profile.activeWorkspaceId = user.activeWorkspaceId || getActiveWorkspaceId(profile);
+      state.profile = profile;
       state.status = user.has_onboarded ? 'app' : 'onboarding';
     });
     builder.addCase(initializeAuth.rejected, (state) => {
