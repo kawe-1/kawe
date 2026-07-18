@@ -6,12 +6,13 @@ import SessionPage from '../pages/session';
 import AuthPage from '../pages/auth';
 import OnboardingPage from '../pages/auth/onboarding';
 import LandingPage from '../pages/landing';
+import { ProtectedRoute, PublicOnlyRoute, OnboardingRoute } from '../app/RouteGuards';
 import React from 'react';
 
 export const router = createBrowserRouter([
   {
     path: '/',
-    element: <Navigate to="/auth" replace />,
+    element: <Navigate to="/dashboard" replace />,
   },
   {
     path: '/landing',
@@ -23,7 +24,11 @@ export const router = createBrowserRouter([
     children: [
       {
         path: '',
-        element: <AuthPage />,
+        element: (
+          <PublicOnlyRoute>
+            <AuthPage />
+          </PublicOnlyRoute>
+        ),
       },
     ],
   },
@@ -33,7 +38,11 @@ export const router = createBrowserRouter([
     children: [
       {
         path: '',
-        element: <OnboardingPage />,
+        element: (
+          <OnboardingRoute>
+            <OnboardingPage />
+          </OnboardingRoute>
+        ),
       },
     ],
   },
@@ -43,7 +52,11 @@ export const router = createBrowserRouter([
     children: [
       {
         path: '',
-        element: <DashboardPage />,
+        element: (
+          <ProtectedRoute>
+            <DashboardPage />
+          </ProtectedRoute>
+        ),
       },
     ],
   },
@@ -53,7 +66,11 @@ export const router = createBrowserRouter([
     children: [
       {
         path: '',
-        element: <SessionPage />,
+        element: (
+          <ProtectedRoute>
+            <SessionPage />
+          </ProtectedRoute>
+        ),
       },
     ],
   },

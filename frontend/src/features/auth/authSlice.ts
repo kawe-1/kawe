@@ -1,9 +1,11 @@
-import { createSlice, PayloadAction } from '@reduxjs/toolkit';
-import { UserProfile, AuthStateStatus, GroupInfo, CourseInfo } from '../../types/user';
+import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
+import { UserProfile, AuthStateStatus, GroupInfo, CourseInfo, getActiveWorkspaceId } from '../../types/user';
+import api from '../../services/axios';
 
 interface AuthState {
   status: AuthStateStatus;
   profile: UserProfile;
+  initialized: boolean; // true once the boot-time /auth/me check has resolved
 }
 
 const EMPTY_PROFILE: UserProfile = {
@@ -21,24 +23,22 @@ const EMPTY_PROFILE: UserProfile = {
   activeWorkspaceId: 'individual',
 };
 
-function loadPersistedProfile(): UserProfile {
-  try {
-    const saved = JSON.parse(localStorage.getItem('kawe_profile') || 'null');
-    if (saved && typeof saved === 'object') {
-      return {
-        ...EMPTY_PROFILE,
-        ...saved,
-        activeWorkspaceId: saved.activeWorkspaceId || 'individual',
-      };
-    }
-  } catch { /* ignore malformed storage */ }
-  return { ...EMPTY_PROFILE, name: 'Student' };
-}
-
 const initialState: AuthState = {
   status: 'app',
-  profile: loadPersistedProfile(),
+  profile: { ...EMPTY_PROFILE },
+  initialized: false,
 };
+
+/**
+ * Called once on app boot. Fetches the full user profile from the backend
+ * and decides whether to route to onboarding or straight to the app.
+ */
+export const initializeAuth = createAsyncThunk('auth/initialize', async () => {
+  const token = localStorage.getItem('kawe_token');
+  if (!token) return null;
+  const { data } = await api.get('/api/auth/me');
+  return data;
+});
 
 export const authSlice = createSlice({
   name: 'auth',
@@ -69,9 +69,43 @@ export const authSlice = createSlice({
       state.profile.activeWorkspaceId = action.payload;
     },
     logout: (state) => {
+      localStorage.removeItem('kawe_token');
       state.status = 'signin';
       state.profile = { ...EMPTY_PROFILE };
     },
+  },
+  extraReducers: (builder) => {
+    builder.addCase(initializeAuth.fulfilled, (state, action) => {
+      state.initialized = true;
+
+      if (!action.payload) {
+        state.status = 'signin';
+        state.profile = { ...EMPTY_PROFILE };
+        return;
+      }
+
+      const user = action.payload;
+
+      const profile: UserProfile = {
+        ...EMPTY_PROFILE,
+        name: user.name,
+        subjectArea: user.subject_area ?? [],
+        academicLevel: user.academic_level ?? '',
+        institution: user.institution ?? '',
+        groups: user.groups ?? [],
+        courses: user.courses ?? [],
+      };
+
+      profile.activeWorkspaceId = user.activeWorkspaceId || getActiveWorkspaceId(profile);
+      state.profile = profile;
+      state.status = user.has_onboarded ? 'app' : 'onboarding';
+    });
+    builder.addCase(initializeAuth.rejected, (state) => {
+      state.initialized = true;
+      localStorage.removeItem('kawe_token');
+      state.status = 'signin';
+      state.profile = { ...EMPTY_PROFILE };
+    });
   },
 });
 
