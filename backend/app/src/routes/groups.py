@@ -25,7 +25,6 @@ class JoinCourseRequest(BaseModel):
 
 class UpdateProfileRequest(BaseModel):
     name: str | None = None
-    account_type: str | None = None
     subject_area: list[str] | None = None
     academic_level: str | None = None
     institution: str | None = None
@@ -86,41 +85,3 @@ def api_update_profile(
     payload.pop("course_id", None)
     repo.update_profile(current_user["id"], payload)
     return {"ok": True}
-
-
-@router.get("/api/auth/me")
-def api_me_full(
-    current_user: dict = Depends(get_current_user),
-    db: Session = Depends(get_db),
-):
-    """
-    Extended /me that returns the full profile including group/course.
-    Replace or merge with the existing /api/auth/me in auth.py.
-    """
-    user_repo = UserRepository(db=db)
-    group_repo = GroupRepository(db=db)
-    course_repo = CourseRepository(db=db)
-
-    user = user_repo.get_user_by_id(current_user["id"])
-    if not user:
-        raise HTTPException(status_code=404, detail="User not found")
-
-    group = None
-    course = None
-    if user.get("account_type") == "study_group":
-        group = group_repo.get_group_for_user(user["id"])
-    elif user.get("account_type") == "course_group":
-        course = course_repo.get_course_for_user(user["id"])
-
-    return {
-        "id": user["id"],
-        "email": user["email"],
-        "name": user["name"],
-        "has_onboarded": user.get("has_onboarded", False),
-        "account_type": user.get("account_type", "individual"),
-        "academic_level": user.get("academic_level"),
-        "institution": user.get("institution"),
-        "subject_area": user.get("subject_area", []),
-        "group": group,
-        "course": course,
-    }

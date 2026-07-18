@@ -13,7 +13,7 @@ from auth import (
     verify_password,
 )
 from db.database import get_db
-from db.repositories import UserRepository
+from db.repositories import CourseRepository, GroupRepository, UserRepository
 
 router = APIRouter()
 
@@ -114,10 +114,32 @@ def api_google_auth(req: GoogleAuthRequest, db: Session = Depends(get_db)):
 
 @router.get("/api/auth/me")
 def api_me(
-    current_user: dict = Depends(get_current_user), db: Session = Depends(get_db)
+    current_user: dict = Depends(get_current_user),
+    db: Session = Depends(get_db),
 ):
-    repo = UserRepository(db=db)
-    user = repo.get_user_by_id(current_user["id"])
+    """
+    Extended /me that returns the full profile including group/course.
+    Replace or merge with the existing /api/auth/me in auth.py.
+    """
+    user_repo = UserRepository(db=db)
+    group_repo = GroupRepository(db=db)
+    course_repo = CourseRepository(db=db)
+
+    user = user_repo.get_user_by_id(current_user["id"])
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
-    return {"id": user["id"], "email": user["email"], "name": user["name"]}
+
+    groups = group_repo.list_groups_for_user(current_user["id"])
+    courses = course_repo.list_courses_for_user(current_user["id"])
+
+    return {
+        "id": user["id"],
+        "email": user["email"],
+        "name": user["name"],
+        "has_onboarded": user.get("has_onboarded", False),
+        "academic_level": user.get("academic_level"),
+        "institution": user.get("institution"),
+        "subject_area": user.get("subject_area", []),
+        "groups": groups,
+        "courses": courses,
+    }

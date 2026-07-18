@@ -44,8 +44,15 @@ export interface SessionDetail extends SessionSummary {
  * POST /api/sessions
  * Create a new study session with the given title.
  */
-export async function createSession(title: string): Promise<SessionSummary> {
-  const { data } = await api.post<SessionSummary>("/api/sessions", { title });
+export async function createSession(
+  title: string,
+  workspaceId?: string,
+  workspaceType?: string,
+): Promise<SessionSummary> {
+  const body: Record<string, unknown> = { title };
+  if (workspaceId) body.workspace_id = workspaceId;
+  if (workspaceType) body.workspace_type = workspaceType;
+  const { data } = await api.post<SessionSummary>("/api/sessions", body);
   return data;
 }
 
@@ -53,8 +60,16 @@ export async function createSession(title: string): Promise<SessionSummary> {
  * GET /api/sessions
  * Return a flat list of all sessions (no sources or artifacts).
  */
-export async function listSessions(): Promise<SessionSummary[]> {
-  const { data } = await api.get<SessionSummary[]>("/api/sessions");
+export async function listSessions(
+  workspaceId?: string,
+  workspaceType?: string,
+): Promise<SessionSummary[]> {
+  const { data } = await api.get<SessionSummary[]>('/api/sessions', {
+    params: {
+      workspace_id: workspaceId,
+      workspace_type: workspaceType,
+    },
+  });
   return data;
 }
 

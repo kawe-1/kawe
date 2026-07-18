@@ -1,13 +1,7 @@
 import api from '../axios';
 import { GroupInfo, CourseInfo } from '../../types/user';
 
-export interface CreateGroupResponse {
-  id: string;
-  name: string;
-  code: string;
-  memberCount: number;
-  role: 'admin' | 'member';
-}
+export interface CreateGroupResponse extends GroupInfo { }
 
 export interface JoinGroupResponse extends GroupInfo { }
 export interface JoinCourseResponse extends CourseInfo { }
@@ -29,7 +23,6 @@ export async function joinCourse(code: string): Promise<JoinCourseResponse> {
 
 export async function updateUserProfile(payload: {
   name?: string;
-  account_type?: string;
   subject_area?: string[];
   academic_level?: string;
   institution?: string;

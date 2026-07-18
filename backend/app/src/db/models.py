@@ -3,7 +3,15 @@ import string
 from datetime import datetime, timezone
 from typing import Any
 
-from sqlalchemy import Boolean, DateTime, ForeignKey, String, Text, func
+from sqlalchemy import (
+    Boolean,
+    CheckConstraint,
+    DateTime,
+    ForeignKey,
+    String,
+    Text,
+    func,
+)
 from sqlalchemy.dialects.postgresql import ARRAY, JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -35,9 +43,6 @@ class User(Base):
     has_onboarded: Mapped[bool] = mapped_column(
         Boolean, nullable=False, default=False, server_default="false"
     )
-    account_type: Mapped[str] = mapped_column(
-        String, nullable=False, default="individual", server_default="individual"
-    )
     academic_level: Mapped[str | None] = mapped_column(String, nullable=True)
     institution: Mapped[str | None] = mapped_column(String, nullable=True)
     subject_area: Mapped[list[str]] = mapped_column(
@@ -45,7 +50,10 @@ class User(Base):
     )
 
     sessions: Mapped[list["StudySession"]] = relationship(
-        "StudySession", back_populates="user", cascade="all, delete-orphan"
+        "StudySession",
+        back_populates="user",
+        cascade="all, delete-orphan",
+        foreign_keys="StudySession.user_id",
     )
 
 
@@ -61,13 +69,35 @@ class StudySession(Base):
     user_id: Mapped[str | None] = mapped_column(
         String, ForeignKey("users.id", ondelete="CASCADE"), nullable=True
     )
+    group_id: Mapped[str | None] = mapped_column(
+        String, ForeignKey("groups.id", ondelete="CASCADE"), nullable=True
+    )
+    course_id: Mapped[str | None] = mapped_column(
+        String, ForeignKey("courses.id", ondelete="CASCADE"), nullable=True
+    )
+
+    # Nullable because the FK is ON DELETE SET NULL — the session's
+    # attribution outlives the creator's account, but the column itself
+    # can't stay populated once that user is gone.
+    created_by: Mapped[str | None] = mapped_column(
+        String,
+        ForeignKey("users.id", ondelete="SET NULL"),
+        nullable=True,
+    )
+
     title: Mapped[str] = mapped_column(String, nullable=False)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), default=_now
     )
 
     # relationships
-    user: Mapped["User | None"] = relationship("User", back_populates="sessions")
+    user: Mapped["User | None"] = relationship(
+        "User",
+        back_populates="sessions",
+        foreign_keys="StudySession.user_id",
+    )
+    group: Mapped["Group | None"] = relationship("Group")
+    course: Mapped["Course | None"] = relationship("Course")
     sources: Mapped[list["Source"]] = relationship(
         "Source", back_populates="session", cascade="all, delete-orphan"
     )
@@ -77,6 +107,7 @@ class StudySession(Base):
     chat_history: Mapped[list["ChatMessage"]] = relationship(
         "ChatMessage", back_populates="session", cascade="all, delete-orphan"
     )
+    # creator: Mapped["User"] = relationship("User", foreign_keys=[created_by])
 
 
 class Source(Base):
@@ -170,7 +201,11 @@ class Group(Base):
 
 class GroupMember(Base):
     __tablename__ = "group_members"
-
+    __table_args__ = (
+        CheckConstraint(
+            "role IN ('owner', 'admin', 'member')", name="ck_group_member_role"
+        ),
+    )
     group_id: Mapped[str] = mapped_column(
         String, ForeignKey("groups.id", ondelete="CASCADE"), primary_key=True
     )
@@ -178,8 +213,8 @@ class GroupMember(Base):
         String, ForeignKey("users.id", ondelete="CASCADE"), primary_key=True
     )
     role: Mapped[str] = mapped_column(
-        String, nullable=False, default="member"
-    )  # 'admin' | 'member'
+        String, nullable=False, default="member", server_default="member"
+    )
     joined_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), default=_now
     )

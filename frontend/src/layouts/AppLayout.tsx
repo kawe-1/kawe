@@ -6,7 +6,7 @@ import { setSidebarOpen, setShowAddWorkspaceModal } from '../features/ui/uiSlice
 import { CreateModal } from '../components/shared/CreateModal';
 import { AddWorkspaceModal } from '../components/shared/AddWorkspaceModal';
 import { setShowCreateModal, createNewSession } from '../features/sessions/sessionsSlice';
-import { tagSessionWorkspace } from '../utils/workspaceSessions';
+import { getActiveWorkspaceId, getProfileWorkspaces } from '../types/user';
 
 export default function AppLayout() {
   const dispatch = useAppDispatch();
@@ -18,12 +18,18 @@ export default function AppLayout() {
     document.body.classList.toggle('dark', darkMode);
   }, [darkMode]);
 
+  const workspaces = getProfileWorkspaces(profile);
+  const activeWorkspaceId = getActiveWorkspaceId(profile);
+  const activeWorkspace = workspaces.find(w => w.id === activeWorkspaceId);
+
   const handleCreateSession = (title: string) => {
-    const activeWorkspaceId = profile?.activeWorkspaceId || 'individual';
-    dispatch(createNewSession(title))
+    dispatch(createNewSession({
+      title,
+      workspaceId: activeWorkspace?.id,
+      workspaceType: activeWorkspace?.type,
+    }))
       .unwrap()
-      .then(session => tagSessionWorkspace(session.id, activeWorkspaceId))
-      .catch(() => {});
+      .catch(() => { });
   };
 
   return (

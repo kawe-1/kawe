@@ -101,7 +101,6 @@ class UserRepository:
             return
         allowed = {
             "name",
-            "account_type",
             "academic_level",
             "institution",
             "subject_area",
@@ -124,9 +123,19 @@ class SessionRepository:
         self,
         session_id: str,
         title: str,
+        created_by: str,
         user_id: Optional[str] = None,
+        group_id: Optional[str] = None,
+        course_id: Optional[str] = None,
     ) -> dict[str, Any]:
-        session = StudySession(id=session_id, title=title, user_id=user_id)
+        session = StudySession(
+            id=session_id,
+            title=title,
+            user_id=user_id,
+            group_id=group_id,
+            course_id=course_id,
+            created_by=created_by,
+        )
         self.db.add(session)
         self.db.commit()
         self.db.refresh(session)
@@ -139,7 +148,27 @@ class SessionRepository:
     def list_sessions_for_user(self, user_id: str) -> list[dict[str, Any]]:
         rows = self.db.scalars(
             select(StudySession)
-            .where(StudySession.user_id == user_id)
+            .where(
+                StudySession.user_id == user_id,
+                StudySession.group_id.is_(None),
+                StudySession.course_id.is_(None),
+            )
+            .order_by(StudySession.created_at.desc())
+        ).all()
+        return [_to_dict(r) for r in rows]
+
+    def list_sessions_for_group(self, group_id: str) -> list[dict[str, Any]]:
+        rows = self.db.scalars(
+            select(StudySession)
+            .where(StudySession.group_id == group_id)
+            .order_by(StudySession.created_at.desc())
+        ).all()
+        return [_to_dict(r) for r in rows]
+
+    def list_sessions_for_course(self, course_id: str) -> list[dict[str, Any]]:
+        rows = self.db.scalars(
+            select(StudySession)
+            .where(StudySession.course_id == course_id)
             .order_by(StudySession.created_at.desc())
         ).all()
         return [_to_dict(r) for r in rows]
@@ -310,6 +339,10 @@ class GroupRepository:
     def __init__(self, db: Session):
         self.db = db
 
+    def is_member_of_group(self, group_id: str, user_id: str) -> bool:
+        membership = self.db.get(GroupMember, (group_id, user_id))
+        return membership is not None
+
     def create_group(self, group_id: str, name: str, created_by: str) -> dict[str, Any]:
         # Ensure unique code
         while True:
@@ -322,7 +355,7 @@ class GroupRepository:
         self.db.add(group)
 
         # Creator becomes admin member
-        member = GroupMember(group_id=group_id, user_id=created_by, role="admin")
+        member = GroupMember(group_id=group_id, user_id=created_by, role="owner")
         self.db.add(member)
         self.db.commit()
         self.db.refresh(group)
@@ -332,7 +365,7 @@ class GroupRepository:
             "name": group.name,
             "code": group.code,
             "memberCount": 1,
-            "role": "admin",
+            "role": "owner",
         }
 
     def join_group(self, code: str, user_id: str) -> dict[str, Any]:
@@ -341,10 +374,10 @@ class GroupRepository:
             return None
 
         # Idempotent — don't double-add
-        existing = self.db.get(GroupMember, (group.id, user_id))
-        if not existing:
-            member = GroupMember(group_id=group.id, user_id=user_id, role="member")
-            self.db.add(member)
+        membership = self.db.get(GroupMember, (group.id, user_id))
+        if not membership:
+            membership = GroupMember(group_id=group.id, user_id=user_id, role="member")
+            self.db.add(membership)
             self.db.commit()
 
         member_count = len(
@@ -352,23 +385,20 @@ class GroupRepository:
                 select(GroupMember).where(GroupMember.group_id == group.id)
             ).all()
         )
-        role = existing.role if existing else "member"
 
         return {
             "id": group.id,
             "name": group.name,
             "code": group.code,
             "memberCount": member_count,
-            "role": role,
+            "role": membership.role,
         }
 
-    def get_group_for_user(self, user_id: str) -> Optional[dict[str, Any]]:
-        membership = self.db.scalar(
-            select(GroupMember).where(GroupMember.user_id == user_id)
-        )
+    def get_group_membership(self, group_id: str, user_id: str) -> Optional[dict]:
+        membership = self.db.get(GroupMember, (group_id, user_id))
         if not membership:
             return None
-        group = self.db.get(Group, membership.group_id)
+        group = self.db.get(Group, group_id)
         if not group:
             return None
         member_count = len(
@@ -384,10 +414,73 @@ class GroupRepository:
             "role": membership.role,
         }
 
+    def make_admin(self, group_id: str, user_id: str) -> bool:
+        """Promote a member to admin. Returns True if successful."""
+        membership = self.db.get(GroupMember, (group_id, user_id))
+        if not membership:
+            return False
+
+        if membership.role == "owner":
+            return False  # Owner can't be demoted via make_admin
+
+        membership.role = "admin"
+        self.db.commit()
+        return True
+
+    def make_owner(
+        self, group_id: str, new_owner_id: str, current_owner_id: str
+    ) -> bool:
+        """Transfer ownership from current owner to new user.
+        Returns True if successful."""
+
+        old_owner = self.db.get(GroupMember, (group_id, current_owner_id))
+        new_owner = self.db.get(GroupMember, (group_id, new_owner_id))
+
+        if not old_owner or not new_owner or old_owner.role != "owner":
+            return False
+
+        # Transfer ownership
+        old_owner.role = "admin"
+        new_owner.role = "owner"
+
+        self.db.commit()
+        return True
+
+    def list_groups_for_user(self, user_id: str) -> list[dict]:
+        memberships = self.db.scalars(
+            select(GroupMember)
+            .where(GroupMember.user_id == user_id)
+            .order_by(GroupMember.joined_at.desc())
+        ).all()
+
+        result = []
+        for m in memberships:
+            group = self.db.get(Group, m.group_id)
+            if group:
+                member_count = len(
+                    self.db.scalars(
+                        select(GroupMember).where(GroupMember.group_id == group.id)
+                    ).all()
+                )
+                result.append(
+                    {
+                        "id": group.id,
+                        "name": group.name,
+                        "code": group.code,
+                        "memberCount": member_count,
+                        "role": m.role,
+                    }
+                )
+        return result
+
 
 class CourseRepository:
     def __init__(self, db: Session):
         self.db = db
+
+    def is_member_of_course(self, course_id: str, user_id: str) -> bool:
+        membership = self.db.get(CourseMember, (course_id, user_id))
+        return membership is not None
 
     def join_course(self, code: str, user_id: str) -> Optional[dict[str, Any]]:
         course = self.db.scalar(select(Course).where(Course.code == code.upper()))
@@ -414,24 +507,29 @@ class CourseRepository:
             "memberCount": member_count,
         }
 
-    def get_course_for_user(self, user_id: str) -> Optional[dict[str, Any]]:
-        membership = self.db.scalar(
-            select(CourseMember).where(CourseMember.user_id == user_id)
-        )
-        if not membership:
-            return None
-        course = self.db.get(Course, membership.course_id)
-        if not course:
-            return None
-        member_count = len(
-            self.db.scalars(
-                select(CourseMember).where(CourseMember.course_id == course.id)
-            ).all()
-        )
-        return {
-            "id": course.id,
-            "name": course.name,
-            "code": course.code,
-            "instructor": course.instructor,
-            "memberCount": member_count,
-        }
+    def list_courses_for_user(self, user_id: str) -> list[dict]:
+        memberships = self.db.scalars(
+            select(CourseMember)
+            .where(CourseMember.user_id == user_id)
+            .order_by(CourseMember.joined_at.desc())
+        ).all()
+
+        result = []
+        for m in memberships:
+            course = self.db.get(Course, m.course_id)
+            if course:
+                member_count = len(
+                    self.db.scalars(
+                        select(CourseMember).where(CourseMember.course_id == course.id)
+                    ).all()
+                )
+                result.append(
+                    {
+                        "id": course.id,
+                        "name": course.name,
+                        "code": course.code,
+                        "instructor": course.instructor,
+                        "memberCount": member_count,
+                    }
+                )
+        return result

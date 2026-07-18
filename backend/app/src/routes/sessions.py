@@ -1,6 +1,7 @@
 import os
 import shutil
 import uuid
+from contextlib import suppress
 
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
@@ -8,13 +9,21 @@ from sqlalchemy.orm import Session
 
 from auth import get_current_user
 from db.database import get_db
-from db.repositories import ArtifactRepository, SessionRepository, SourceRepository
+from db.repositories import (
+    ArtifactRepository,
+    CourseRepository,
+    GroupRepository,
+    SessionRepository,
+    SourceRepository,
+)
 
 router = APIRouter()
 
 
 class CreateSessionRequest(BaseModel):
     title: str
+    workspace_id: str | None = None
+    workspace_type: str | None = None
 
 
 @router.post("/api/sessions")
@@ -24,8 +33,29 @@ def api_create_session(
     db: Session = Depends(get_db),
 ):
     repo = SessionRepository(db=db)
+    group_repo = GroupRepository(db=db)
+    course_repo = CourseRepository(db=db)
+
+    group_id = None
+    course_id = None
+    if req.workspace_type == "study_group" and req.workspace_id:
+        if not group_repo.is_member_of_group(req.workspace_id, current_user["id"]):
+            raise HTTPException(status_code=403, detail="Not a member of that group.")
+        group_id = req.workspace_id
+    elif req.workspace_type == "course_group" and req.workspace_id:
+        if not course_repo.is_member_of_course(req.workspace_id, current_user["id"]):
+            raise HTTPException(status_code=403, detail="Not enrolled in that class.")
+        course_id = req.workspace_id
+
     session_id = f"sess_{uuid.uuid4().hex[:12]}"
-    repo.create_session(session_id, req.title, user_id=current_user["id"])
+    repo.create_session(
+        session_id,
+        req.title,
+        created_by=current_user["id"],
+        user_id=current_user["id"],
+        group_id=group_id,
+        course_id=course_id,
+    )
     return {
         "id": session_id,
         "title": req.title,
@@ -38,9 +68,24 @@ def api_create_session(
 @router.get("/api/sessions")
 def api_list_sessions(
     current_user: dict = Depends(get_current_user),
+    workspace_id: str | None = None,
+    workspace_type: str | None = None,
     db: Session = Depends(get_db),
 ):
     repo = SessionRepository(db=db)
+    group_repo = GroupRepository(db=db)
+    course_repo = CourseRepository(db=db)
+
+    if workspace_type == "study_group" and workspace_id:
+        if not group_repo.is_member_of_group(workspace_id, current_user["id"]):
+            raise HTTPException(status_code=403, detail="Not a member of that group.")
+        return repo.list_sessions_for_group(workspace_id)
+
+    if workspace_type == "course_group" and workspace_id:
+        if not course_repo.is_member_of_course(workspace_id, current_user["id"]):
+            raise HTTPException(status_code=403, detail="Not enrolled in that class.")
+        return repo.list_sessions_for_course(workspace_id)
+
     return repo.list_sessions_for_user(current_user["id"])
 
 
@@ -53,9 +98,23 @@ def api_get_session(
     session_repo = SessionRepository(db=db)
     source_repo = SourceRepository(db=db)
     artifact_repo = ArtifactRepository(db=db)
+    group_repo = GroupRepository(db=db)
+    course_repo = CourseRepository(db=db)
 
     session = session_repo.get_session(session_id)
-    if not session or session.get("user_id") != current_user["id"]:
+    if not session:
+        raise HTTPException(status_code=404, detail="Session not found")
+
+    allowed = session.get("user_id") == current_user["id"]
+    if not allowed and session.get("group_id"):
+        allowed = group_repo.is_member_of_group(
+            session.get("group_id"), current_user["id"]
+        )
+    if not allowed and session.get("course_id"):
+        allowed = course_repo.is_member_of_course(
+            session.get("course_id"), current_user["id"]
+        )
+    if not allowed:
         raise HTTPException(status_code=404, detail="Session not found")
 
     sources = source_repo.list_sources(session_id)
@@ -85,9 +144,7 @@ def api_delete_session(
     repo.delete_session(session_id)
     for folder in [f"data/uploads/{session_id}", f"data/vector_stores/{session_id}"]:
         if os.path.exists(folder):
-            try:
+            with suppress(OSError):
                 shutil.rmtree(folder)
-            except OSError:
-                pass
 
     return {"message": "Session deleted"}

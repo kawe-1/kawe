@@ -9,6 +9,9 @@ interface SessionsState {
   showCreateModal: boolean;
   status: 'idle' | 'loading' | 'succeeded' | 'failed';
   detailStatus: 'idle' | 'loading' | 'succeeded' | 'failed';
+  // Which workspace `sessions` currently holds data for, so callers can tell
+  // a workspace switch apart from "already fetched" and know to refetch.
+  cachedWorkspaceKey: string | null;
 }
 
 const initialState: SessionsState = {
@@ -19,19 +22,30 @@ const initialState: SessionsState = {
   showCreateModal: false,
   status: 'idle',
   detailStatus: 'idle',
+  cachedWorkspaceKey: null,
 };
 
-export const fetchSessions = createAsyncThunk('sessions/fetchSessions', async () => {
-  return await listSessions();
-});
+export function workspaceKey(workspaceId?: string): string {
+  return workspaceId || 'individual';
+}
+
+export const fetchSessions = createAsyncThunk(
+  'sessions/fetchSessions',
+  async ({ workspaceId, workspaceType }: { workspaceId?: string; workspaceType?: string } = {}) => {
+    return await listSessions(workspaceId, workspaceType);
+  },
+);
 
 export const fetchSessionDetail = createAsyncThunk('sessions/fetchSessionDetail', async (id: string) => {
   return await getSession(id);
 });
 
-export const createNewSession = createAsyncThunk('sessions/createNewSession', async (title: string) => {
-  return await createSessionApi(title);
-});
+export const createNewSession = createAsyncThunk(
+  'sessions/createNewSession',
+  async (params: { title: string; workspaceId?: string; workspaceType?: string }) => {
+    return await createSessionApi(params.title, params.workspaceId, params.workspaceType);
+  },
+);
 
 export const sessionsSlice = createSlice({
   name: 'sessions',
@@ -54,8 +68,9 @@ export const sessionsSlice = createSlice({
   },
   extraReducers: (builder) => {
     builder
-      .addCase(fetchSessions.pending, (state) => {
+      .addCase(fetchSessions.pending, (state, action) => {
         state.status = 'loading';
+        state.cachedWorkspaceKey = workspaceKey(action.meta.arg?.workspaceId);
       })
       .addCase(fetchSessions.fulfilled, (state, action) => {
         state.status = 'succeeded';
