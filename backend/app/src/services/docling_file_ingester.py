@@ -17,20 +17,38 @@ class DoclingFileIngester(BaseIngester):
         if not source:
             raise ValueError("In-memory file bytes are required for remote parsing.")
 
-        # Dispatch bytes to our dedicated heavy-lifter container
         service_url = os.getenv("PARSING_SERVICE_URL", "http://localhost:8080")
+        api_key = os.getenv("DOCLING_API_KEY")
+
+        if not api_key:
+            raise RuntimeError("DOCLING_API_KEY environment variable is not set.")
+
+        headers = {"Authorization": f"Bearer {api_key}"}
 
         with httpx.Client(timeout=360.0) as client:
-            files = {"file": (filename, source, "application/octet-stream")}
-            response = client.post(f"{service_url}/parse-to-chunks", files=files)
+            files = {
+                "file": (
+                    filename,
+                    source,
+                    "application/octet-stream",
+                )
+            }
 
-            if response.status_code != 200:
-                raise RuntimeError(f"Docling service failed parsing: {response.text}")
+            response = client.post(
+                f"{service_url}/parse-to-chunks",
+                files=files,
+                headers=headers,
+            )
+
+            response.raise_for_status()
 
             data = response.json()
 
-        # Rehydrate into LangChain documents
         return [
-            Document(page_content=chunk["text"], metadata={"source": filename})
+            Document(
+                page_content=chunk["text"],
+                metadata={"source": filename},
+            )
             for chunk in data["chunks"]
         ]
+
